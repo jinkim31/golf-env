@@ -1,9 +1,5 @@
-import math
-
-import numpy
-import numpy as np
-
 import util
+import numpy as np
 from golf_env import GolfEnv
 
 if __name__ == '__main__':

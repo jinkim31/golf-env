@@ -26,3 +26,17 @@ def inv_transform_2d(tf):
     inv = np.concatenate([rot.transpose(), np.dot(-rot.transpose(), translation)], 1)
     inv = numpy.concatenate([inv, numpy.array([[0, 0, 1]])])
     return inv
+
+
+def is_within(bounds_min, bounds_max, x, include_equality=True):
+    assert (len(bounds_min) == len(bounds_max) == len(x))
+
+    for i in range(len(x)):
+        if include_equality:
+            if x[i] <= bounds_min[i] or bounds_max[i] <= x[i]:
+                return False
+        else:
+            if x[i] < bounds_min[i] or bounds_max[i] < x[i]:
+                return False
+
+    return True
