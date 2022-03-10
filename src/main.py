@@ -1,5 +1,4 @@
 import util
-import numpy as np
 from golf_env_continuous import GolfEnv
 
 if __name__ == '__main__':

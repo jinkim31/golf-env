@@ -7,7 +7,7 @@ import cv2
 
 
 class GolfEnv(env.Env):
-    IMG_PATH = "resources/img.png"
+    IMG_PATH = "../resources/img.png"
     IMG_SIZE_X = 100
     IMG_SIZE_Y = 100
     START_X = 10
