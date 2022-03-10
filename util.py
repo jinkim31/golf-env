@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 import math
 
@@ -24,7 +23,7 @@ def inv_transform_2d(tf):
     rot = tf[:2, :2]
     translation = tf[:2, 2:3]
     inv = np.concatenate([rot.transpose(), np.dot(-rot.transpose(), translation)], 1)
-    inv = numpy.concatenate([inv, numpy.array([[0, 0, 1]])])
+    inv = np.concatenate([inv, np.array([[0, 0, 1]])])
     return inv
 
 

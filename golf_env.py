@@ -7,7 +7,7 @@ import cv2
 
 
 class GolfEnv(env.Env):
-    IMG_URL = "resources/img.png"
+    IMG_PATH = "resources/img.png"
     IMG_SIZE_X = 100
     IMG_SIZE_Y = 100
     START_X = 10
@@ -30,7 +30,8 @@ class GolfEnv(env.Env):
         self.__marker_end_y = []
         self.__test_x = []
         self.__test_y = []
-        self.img = cv2.cvtColor(cv2.imread(self.IMG_URL), cv2.COLOR_BGR2RGB)
+        self.img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
+        self.img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.reset()
 
     def step(self, action):
@@ -55,7 +56,7 @@ class GolfEnv(env.Env):
         plt.ylabel('Y')
         plt.xlim([0, self.IMG_SIZE_X])
         plt.ylim([0, self.IMG_SIZE_Y])
-        plt.imshow(plt.imread(self.IMG_URL), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
+        plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
         plt.scatter(self.PIN_X, self.PIN_Y, s=500, marker='x', color='black')
         plt.scatter(self.START_X, self.START_Y, s=200, color='black')
         plt.quiver(self.__marker_x, self.__marker_y, self.__marker_end_x, self.__marker_end_y)
@@ -79,7 +80,7 @@ class GolfEnv(env.Env):
         t01 = util.transform_2d(self.__state[0], self.__state[1], angle_to_pin)
 
         # generate image
-        state_img = np.zeros((self.STATE_IMAGE_HEIGHT, self.STATE_IMAGE_WIDTH, 3), np.uint8)
+        state_img = np.zeros((self.STATE_IMAGE_HEIGHT, self.STATE_IMAGE_WIDTH), np.uint8)
         state_img_y = 0
 
         for y in range(self.STATE_IMAGE_OFFSET_HEIGHT, self.STATE_IMAGE_HEIGHT + self.STATE_IMAGE_OFFSET_HEIGHT):
@@ -92,12 +93,12 @@ class GolfEnv(env.Env):
                 self.__test_x.append(x0)
                 self.__test_y.append(y0)
 
-                if util.is_within([0, 0], [self.IMG_SIZE_X-1, self.IMG_SIZE_Y-1], [x0, y0]):
-                    state_img[- state_img_y - 1, - state_img_x - 1] = self.img[-y0 -1, x0]
+                if util.is_within([0, 0], [self.IMG_SIZE_X - 1, self.IMG_SIZE_Y - 1], [x0, y0]):
+                    state_img[- state_img_y - 1, - state_img_x - 1] = self.img_gray[-y0 - 1, x0]
                 else:
-                    state_img[- state_img_y - 1, - state_img_x - 1] = np.array([0, 0, 0])
+                    state_img[- state_img_y - 1, - state_img_x - 1] = 0
 
                 state_img_x = state_img_x + 1
             state_img_y = state_img_y + 1
-        plt.imshow(state_img)
+        plt.imshow(cv2.cvtColor(state_img, cv2.COLOR_GRAY2BGR))
         plt.show()
