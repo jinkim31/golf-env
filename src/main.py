@@ -1,13 +1,18 @@
 import util
 from golf_env_continuous import GolfEnv
+from src.random_agent import RandomAgent
 
 if __name__ == '__main__':
     env = GolfEnv()
+    agent = RandomAgent()
 
     # episode iteration
-    for _ in range(10):
-        env.reset()
-        env.step((util.deg_to_rad(0), 30))
-        env.step((util.deg_to_rad(45), 30))
-        env.step((util.deg_to_rad(-45), 30))
+    for _ in range(1):
+        (x, y, img, t) = env.reset()
+        util.show_grayscale(img)
+
+        for i in range(5):
+            (s, a, r, (x, y, img, t)) = env.step(agent.step())
+            util.show_grayscale(img)
+
         env.plot()

@@ -27,7 +27,7 @@ class Env(metaclass=ABCMeta):
     def step(self, action):
         """
         :param action: tuple of action
-        :return: tuple of transition (s,a,r,s',termination)
+        :return: tuple of transition (s,a,r,s')
         """
         pass
 

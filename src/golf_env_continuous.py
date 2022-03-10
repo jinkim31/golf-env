@@ -7,17 +7,17 @@ import cv2
 
 
 class GolfEnv(env.Env):
-    IMG_PATH = "../resources/img.png"
+    IMG_PATH = "resources/img.png"
     IMG_SIZE_X = 100
     IMG_SIZE_Y = 100
     START_X = 10
     START_Y = 10
-    VAR_X = 1
-    VAR_Y = 3
     PIN_X = 50
     PIN_Y = 90
-    STATE_IMAGE_WIDTH = 40
-    STATE_IMAGE_HEIGHT = 60
+    VAR_X = 1
+    VAR_Y = 3
+    STATE_IMAGE_WIDTH = 20
+    STATE_IMAGE_HEIGHT = 30
     STATE_IMAGE_OFFSET_HEIGHT = -4
 
     def __init__(self):
@@ -118,9 +118,5 @@ class GolfEnv(env.Env):
 
                 state_img_x = state_img_x + 1
             state_img_y = state_img_y + 1
-        # plt.imshow(cv2.cvtColor(state_img, cv2.COLOR_GRAY2BGR))
-        # plt.show()
 
         return state_img
-
-

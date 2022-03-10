@@ -1,6 +1,7 @@
 import numpy as np
 import math
-
+import matplotlib.pyplot as plt
+import cv2
 
 def deg_to_rad(deg):
     return deg / 180.0 * math.pi
@@ -39,3 +40,7 @@ def is_within(bounds_min, bounds_max, x, include_equality=True):
                 return False
 
     return True
+
+def show_grayscale(img):
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_GRAY2BGR))
+    plt.show()
