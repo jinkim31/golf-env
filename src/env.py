@@ -24,9 +24,10 @@ class Env(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def step(self, action):
+    def step(self, action, debug=False):
         """
         :param action: tuple of action
+        :param debug: print debug message on each step
         :return: tuple of transition (s,a,r,s')
         """
         pass
