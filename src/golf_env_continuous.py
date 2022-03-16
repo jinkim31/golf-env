@@ -49,8 +49,8 @@ class GolfEnv:
             231: ('SAND', 0.4, False, lambda: -1),
             -1: ('WATER', 0.4, False, lambda: -1),
             77: ('ROUGH', 1.0, False, lambda: -1),
-            0: ('OB', 1.0, True, lambda: -1),
-            255: ('OB', 1.0, True, lambda: -1)
+            0: ('OB', 1.0, True, lambda: -100),
+            255: ('OB', 1.0, True, lambda: -100)
         }
 
     def step(self, action, debug=False):
