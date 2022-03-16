@@ -2,23 +2,24 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import util
-import env
 import cv2
+from scipy.interpolate import interp1d
 
 
-class GolfEnv(env.Env):
-    IMG_PATH = "resources/img.png"
-    IMG_SIZE_X = 100
-    IMG_SIZE_Y = 100
-    START_X = 10
-    START_Y = 10
-    PIN_X = 50
-    PIN_Y = 90
-    VAR_X = 1
-    VAR_Y = 3
-    STATE_IMAGE_WIDTH = 20
-    STATE_IMAGE_HEIGHT = 30
-    STATE_IMAGE_OFFSET_HEIGHT = -4
+class GolfEnv:
+    IMG_PATH = "resources/env.png"
+    IMG_SIZE_X = 500
+    IMG_SIZE_Y = 500
+    START_X = 260
+    START_Y = 120
+    PIN_X = 280
+    PIN_Y = 430
+    VAR_X = 0
+    VAR_Y = 0
+    STATE_IMAGE_WIDTH = 300
+    STATE_IMAGE_HEIGHT = 300
+    STATE_IMAGE_OFFSET_HEIGHT = -20
+    OUT_OF_IMG_INTENSITY = 255
 
     class NoAreaNameAssignedException(Exception):
         def __init__(self, pixel):
@@ -28,24 +29,7 @@ class GolfEnv(env.Env):
             return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area name.'
 
     def __init__(self):
-
-        """
-            dictionary storing name, reward, termination of each pixel
-            key: pixel intensity
-            value: tuple of name, reward function and termination(n, r, t)
-        """
-        self.rewards = {
-            135: ('TEE', False, lambda ball_pos: 0),
-            164: ('FAREWAY', False, lambda ball_pos: 0),
-            118: ('GREEN', False, lambda ball_pos: np.linalg.norm(ball_pos - np.array([self.PIN_X, self.PIN_Y]))),
-            190: ('SAND', False, lambda ball_pos: 0),
-            255: ('WATER', False, lambda ball_pos: 0),
-            255: ('ROUGH', False, lambda ball_pos: 0),
-            0: ('OB', True, lambda ball_pos: 0),
-        }
-
-        super().__init__(2, 2)  # action size:2(angle,club), state size:2(x,y)
-        self.transition_n = 0
+        self.__step_n = 0
         self.__state = None
         self.__marker_x = []
         self.__marker_y = []
@@ -53,8 +37,21 @@ class GolfEnv(env.Env):
         self.__marker_end_y = []
         self.__test_x = []
         self.__test_y = []
-        self.img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
-        self.img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
+        self.__ball_pos = None
+        self.__distance_to_pin = 0
+        self.__prev_pixel = 0
+        self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
+        self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
+        self.__area_info = {
+            -1: ('TEE', 1.0, False, lambda: -1),
+            160: ('FAREWAY', 1.0, False, lambda: -1),
+            83: ('GREEN', 1.0, True, lambda: self.get_green_reward(self.__distance_to_pin)),
+            231: ('SAND', 0.4, False, lambda: -1),
+            -1: ('WATER', 0.4, False, lambda: -1),
+            77: ('ROUGH', 1.0, False, lambda: -1),
+            0: ('OB', 1.0, True, lambda: -1),
+            255: ('OB', 1.0, True, lambda: -1)
+        }
 
     def step(self, action, debug=False):
         """
@@ -64,37 +61,40 @@ class GolfEnv(env.Env):
         :return: tuple of transition (s,a,r,s')
         s:before state(x,y,img,t) a:action, r:reward, s':new state(x',y',img,t)
         """
-        self.transition_n += 1
+        self.__step_n += 1
 
         # get tf delta of (x,y)
         rng = np.random.default_rng()
-        angle_to_pin = math.atan2(self.PIN_Y - self.__state[1], self.PIN_X - self.__state[0])
-        shoot = np.array([[action[1], 0]]) + rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
+        reduced_distance = action[1] * self.__area_info[self.__prev_pixel][1]
+        angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
+        shoot = np.array([[reduced_distance, 0]]) + rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
         delta = np.dot(util.rotation_2d(action[0] + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta
-        new_x = self.__state[0] + delta[0][0]
-        new_y = self.__state[1] + delta[0][1]
+        self.__ball_pos = np.array([self.__ball_pos[0] + delta[0][0], self.__ball_pos[1] + delta[0][1]])
 
         # get state img
-        state_img, pixel = self.__generate_state_img(new_x, new_y)
+        state_img, pixel = self.__generate_state_img(self.__ball_pos[0], self.__ball_pos[1])
+        self.__prev_pixel = pixel
+
+        # get distance to ball
+        self.__distance_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
 
         # get reward, termination from reward dict
-        if pixel not in self.rewards:
+        if pixel not in self.__area_info:
             raise GolfEnv.NoAreaNameAssignedException(pixel)
-        reward = self.rewards[pixel][2](np.array([new_x, new_y]))
-        termination = self.rewards[pixel][1]
+        reward = self.__area_info[pixel][3]()
+        termination = self.__area_info[pixel][2]
 
         # update state
-        old_state = self.__state
-        new_state = (new_x, new_y, state_img, termination)
-        self.__state = new_state
+        self.__state = (state_img, self.__distance_to_pin)
 
         # print debug
         if debug:
-            print('itr' + str(self.transition_n) + ' landed on ' + self.rewards[pixel][0] + ' reward:' + str(reward))
+            print('itr' + str(self.__step_n) + ': landed on ' + self.__area_info[pixel][0] + ' reward:' + str(reward) +
+                  ' termination:'+str(termination))
 
-        return old_state, action, reward, new_state
+        return self.__state, reward, termination
 
     def plot(self):
         plt.figure(figsize=(10, 10))
@@ -106,14 +106,14 @@ class GolfEnv(env.Env):
         plt.scatter(self.PIN_X, self.PIN_Y, s=500, marker='x', color='black')
         plt.scatter(self.START_X, self.START_Y, s=200, color='black')
         plt.quiver(self.__marker_x, self.__marker_y, self.__marker_end_x, self.__marker_end_y)
-        plt.scatter(self.__test_x, self.__test_y, s=0.1, color='black')
+        plt.scatter(self.__test_x, self.__test_y, s=0.01, color='black')
         plt.show()
 
     def reset(self):
         """
         :return: tuple of initial state (x, y, img, t) t:termination
         """
-        self.transition_n = 0
+        self.__step_n = 0
         self.__marker_x = []
         self.__marker_y = []
         self.__marker_end_x = []
@@ -121,12 +121,17 @@ class GolfEnv(env.Env):
         self.__test_x = []
         self.__test_y = []
 
+        # get ball pos, dist_to_pin
+        self.__ball_pos = np.array([self.START_X, self.START_Y])
+        dist_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+
         state_img, pixel = self.__generate_state_img(self.START_X, self.START_Y)
-        self.__state = (self.START_X, self.START_Y, state_img, False)
+        self.__prev_pixel = pixel
+        self.__state = (state_img, dist_to_pin)
         return self.__state
 
     def show_grayscale(self):
-        plt.imshow(cv2.cvtColor(self.img_gray, cv2.COLOR_GRAY2BGR))
+        plt.imshow(cv2.cvtColor(self.__img_gray, cv2.COLOR_GRAY2BGR))
         plt.show()
 
     def __generate_state_img(self, x, y):
@@ -156,14 +161,24 @@ class GolfEnv(env.Env):
                 self.__test_y.append(y0)
 
                 if util.is_within([0, 0], [self.IMG_SIZE_X - 1, self.IMG_SIZE_Y - 1], [x0, y0]):
-                    state_img[- state_img_y - 1, - state_img_x - 1] = self.img_gray[-y0 - 1, x0]
+                    state_img[- state_img_y - 1, - state_img_x - 1] = self.__img_gray[-y0 - 1, x0]
                 else:
-                    state_img[- state_img_y - 1, - state_img_x - 1] = 0
+                    state_img[- state_img_y - 1, - state_img_x - 1] = self.OUT_OF_IMG_INTENSITY
 
                 state_img_x = state_img_x + 1
             state_img_y = state_img_y + 1
 
         # get pixel intensity from generated state image
-        pixel = state_img[int(self.STATE_IMAGE_OFFSET_HEIGHT - 1), int(self.STATE_IMAGE_WIDTH / 2)]
+        landed_pixel_intensity = state_img[int(self.STATE_IMAGE_OFFSET_HEIGHT - 1), int(self.STATE_IMAGE_WIDTH / 2)]
 
-        return state_img, pixel
+        return state_img, landed_pixel_intensity
+
+    def get_green_reward(self, distance_to_pin):
+        x = np.array([0, 1, 3, 15])
+        y = np.array([1, 1, 2, 3])
+        f = interp1d(x, y)
+        # xnew = np.linspace(0, 15, num=41, endpoint=True)
+        # plt.plot(x, y, 'o', xnew, f(xnew), '-')
+        # plt.show()
+        # print('distance:' + str(distance_to_pin) + ' reward:' + str(-f(distance_to_pin)))
+        return -f(distance_to_pin)

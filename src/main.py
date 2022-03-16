@@ -7,13 +7,16 @@ if __name__ == '__main__':
     agent = RandomAgent()
 
     # env.show_grayscale()
-    # episode iteration
+
     for _ in range(1):
-        (x, y, img, t) = env.reset()
+        (img, dist) = env.reset()
         util.show_grayscale(img)
 
-        for i in range(5):
-            (s, a, r, (x, y, img, t)) = env.step(agent.step(), debug=True)
-            util.show_grayscale(img)
+        ((img, dist), r, term) = env.step((util.deg_to_rad(30), 100), debug=True)
+        util.show_grayscale(img)
+        ((img, dist), r, term) = env.step((util.deg_to_rad(21), 140), debug=True)
+        util.show_grayscale(img)
+        ((img, dist), r, term) = env.step((util.deg_to_rad(0), 100), debug=True)
+        util.show_grayscale(img)
 
         env.plot()
