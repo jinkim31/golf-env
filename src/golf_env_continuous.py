@@ -45,7 +45,7 @@ class GolfEnv:
         self.__area_info = {
             -1: ('TEE', 1.0, False, lambda: -1),
             160: ('FAREWAY', 1.0, False, lambda: -1),
-            83: ('GREEN', 1.0, True, lambda: self.get_green_reward(self.__distance_to_pin)),
+            83: ('GREEN', 1.0, True, lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
             231: ('SAND', 0.4, False, lambda: -1),
             -1: ('WATER', 0.4, False, lambda: -1),
             77: ('ROUGH', 1.0, False, lambda: -1),
