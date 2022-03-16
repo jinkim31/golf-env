@@ -56,10 +56,10 @@ class GolfEnv:
     def step(self, action, debug=False):
         """
         steps simulator
-        :param action: tuple of action (continuous angle, continuous distance)
+        :param action: tuple of action(continuous angle, continuous distance)
         :param debug: print debug message of where the ball landed etc.
-        :return: tuple of transition (s,a,r,s')
-        s:before state(x,y,img,t) a:action, r:reward, s':new state(x',y',img,t)
+        :return: tuple of transition (s,r,term)
+        s:tuple of state(img, dist), r:rewards term:termination
         """
         self.__step_n += 1
 
@@ -111,7 +111,7 @@ class GolfEnv:
 
     def reset(self):
         """
-        :return: tuple of initial state (x, y, img, t) t:termination
+        :return: tuple of initial state(img, dist), r:rewards term:termination
         """
         self.__step_n = 0
         self.__marker_x = []
