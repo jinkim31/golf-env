@@ -4,9 +4,6 @@ from src.random_agent import RandomAgent
 
 if __name__ == '__main__':
     env = GolfEnv()
-    agent = RandomAgent()
-
-    # env.show_grayscale()
 
     for _ in range(1):
         (img, dist) = env.reset()
