@@ -14,8 +14,8 @@ class GolfEnv:
     START_Y = 120
     PIN_X = 280
     PIN_Y = 430
-    VAR_X = 0
-    VAR_Y = 0
+    VAR_X = 10
+    VAR_Y = 10
     STATE_IMAGE_WIDTH = 300
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
