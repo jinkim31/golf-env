@@ -56,13 +56,15 @@ class GolfEnv:
             # PIXL   NAME       RDUX    RBCK    TERM    RWRD
             -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
             160:    ('FAREWAY', 1.0,    False,  False,  lambda: -1),
-            83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
+            83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.green_reward_function(self.__distance_to_pin)),
             231:    ('SAND',    0.4,    False,  False,  lambda: -1),
             -1:     ('WATER',   0.4,    False,  False,  lambda: -1),
             77:     ('ROUGH',   1.0,    False,  False,  lambda: -1),
             0:      ('OB',      1.0,    True,   False,  lambda: -2),
             255:    ('OB',      1.0,    True,   False,  lambda: -2)
         }
+        self.green_reward_function = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
+        self.rng = np.random.default_rng()
 
     def step(self, action, debug=False):
         """
@@ -75,11 +77,10 @@ class GolfEnv:
         self.__step_n += 1
 
         # get tf delta of (x,y)
-        rng = np.random.default_rng()
         reduction = self.__area_info[self.__prev_pixel][self.AreaInfo.REDUCTION]
         reduced_distance = action[1] * reduction
         angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
-        shoot = np.array([[reduced_distance, 0]]) + rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
+        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
         delta = np.dot(util.rotation_2d(action[0] + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
@@ -214,13 +215,3 @@ class GolfEnv:
         landed_pixel_intensity = state_img[int(self.STATE_IMAGE_OFFSET_HEIGHT - 1), int(self.STATE_IMAGE_WIDTH / 2)]
 
         return state_img, landed_pixel_intensity
-
-    def get_green_reward(self, distance_to_pin):
-        x = np.array([0, 1, 3, 15, 100])
-        y = np.array([1, 1, 2, 3, 4])
-        f = interp1d(x, y)
-        # xnew = np.linspace(0, 15, num=41, endpoint=True)
-        # plt.plot(x, y, 'o', xnew, f(xnew), '-')
-        # plt.show()
-        # print('distance:' + str(distance_to_pin) + ' reward:' + str(-f(distance_to_pin)))
-        return -f(distance_to_pin)
