@@ -1,4 +1,6 @@
 import math
+from enum import IntEnum
+
 import matplotlib.pyplot as plt
 import numpy as np
 import util
@@ -14,8 +16,8 @@ class GolfEnv:
     START_Y = 120
     PIN_X = 280
     PIN_Y = 430
-    VAR_X = 10
-    VAR_Y = 10
+    VAR_X = 0
+    VAR_Y = 0
     STATE_IMAGE_WIDTH = 300
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
@@ -27,6 +29,13 @@ class GolfEnv:
 
         def __str__(self):
             return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area name.'
+
+    class AreaInfo(IntEnum):
+        NAME = 0
+        REDUCTION = 1
+        ROLLBACK = 2
+        TERMINATION = 3
+        REWARD = 4
 
     def __init__(self):
         self.__step_n = 0
@@ -43,14 +52,15 @@ class GolfEnv:
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
-            -1: ('TEE', 1.0, False, lambda: -1),
-            160: ('FAREWAY', 1.0, False, lambda: -1),
-            83: ('GREEN', 1.0, True, lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
-            231: ('SAND', 0.4, False, lambda: -1),
-            -1: ('WATER', 0.4, False, lambda: -1),
-            77: ('ROUGH', 1.0, False, lambda: -1),
-            0: ('OB', 1.0, True, lambda: -100),
-            255: ('OB', 1.0, True, lambda: -100)
+            # pixel:(NAME,      REDX,   RBCK,   TERM,   REWRD)
+            -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
+            160:    ('FAREWAY', 1.0,    False,  False,  lambda: -1),
+            83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
+            231:    ('SAND',    0.4,    False,  False,  lambda: -1),
+            -1:     ('WATER',   0.4,    False,  False,  lambda: -1),
+            77:     ('ROUGH',   1.0,    False,  False,  lambda: -1),
+            0:      ('OB',      1.0,    True,   True,   lambda: -100),
+            255:    ('OB',      1.0,    True,   True,   lambda: -100)
         }
 
     def step(self, action, debug=False):
@@ -65,34 +75,43 @@ class GolfEnv:
 
         # get tf delta of (x,y)
         rng = np.random.default_rng()
-        reduced_distance = action[1] * self.__area_info[self.__prev_pixel][1]
+        reduction = self.__area_info[self.__prev_pixel][self.AreaInfo.REDUCTION]
+        reduced_distance = action[1] * reduction
         angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
         shoot = np.array([[reduced_distance, 0]]) + rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
         delta = np.dot(util.rotation_2d(action[0] + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta
-        self.__ball_pos = np.array([self.__ball_pos[0] + delta[0][0], self.__ball_pos[1] + delta[0][1]])
+        new_ball_pos = np.array([self.__ball_pos[0] + delta[0][0], self.__ball_pos[1] + delta[0][1]])
 
         # get state img
-        state_img, pixel = self.__generate_state_img(self.__ball_pos[0], self.__ball_pos[1])
-        self.__prev_pixel = pixel
+        state_img, pixel = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
+        new_pixel = pixel
 
         # get distance to ball
-        self.__distance_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+        self.__distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_X, self.PIN_Y]))
 
         # get reward, termination from reward dict
         if pixel not in self.__area_info:
             raise GolfEnv.NoAreaNameAssignedException(pixel)
-        reward = self.__area_info[pixel][3]()
-        termination = self.__area_info[pixel][2]
+        reward = self.__area_info[pixel][self.AreaInfo.REWARD]()
+        termination = self.__area_info[pixel][self.AreaInfo.TERMINATION]
 
         # update state
-        self.__state = (state_img, self.__distance_to_pin)
+        if not self.__area_info[pixel][self.AreaInfo.ROLLBACK]:
+            self.__state = (state_img, self.__distance_to_pin)
+            self.__ball_pos = new_ball_pos
+            self.__prev_pixel = new_pixel
 
         # print debug
         if debug:
-            print('itr' + str(self.__step_n) + ': landed on ' + self.__area_info[pixel][0] + ' reward:' + str(reward) +
-                  ' termination:'+str(termination))
+            print(
+                'itr' + str(self.__step_n) +
+                ': landed on ' + self.__area_info[pixel][self.AreaInfo.NAME] +
+                ' reduction:' + str(reduction) +
+                ' reward:' + str(reward) +
+                ' termination:' + str(termination) +
+                ' rollback:' + str(self.__area_info[pixel][self.AreaInfo.ROLLBACK]))
 
         return self.__state, reward, termination
 
