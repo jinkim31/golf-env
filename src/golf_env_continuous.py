@@ -11,8 +11,8 @@ class GolfEnv:
     IMG_PATH = "resources/env.png"
     IMG_SIZE_X = 500
     IMG_SIZE_Y = 500
-    START_X = 260
-    START_Y = 120
+    START_X = 256
+    START_Y = 116
     PIN_X = 280
     PIN_Y = 430
     VAR_X = 0
@@ -39,12 +39,6 @@ class GolfEnv:
     def __init__(self):
         self.__step_n = 0
         self.__state = None
-        self.__arrow_head_x = []
-        self.__arrow_head_y = []
-        self.__arrow_tail_x = []
-        self.__arrow_tail_y = []
-        self.__state_img_mask_x = []
-        self.__state_img_mask_y = []
         self.__ball_path_x = []
         self.__ball_path_y = []
         self.__ball_pos = None
@@ -65,6 +59,23 @@ class GolfEnv:
         }
         self.green_reward_function = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
         self.rng = np.random.default_rng()
+
+    def reset(self):
+        """
+        :return: tuple of initial state(img, dist), r:rewards term:termination
+        """
+        self.__step_n = 0
+        self.__ball_path_x = [self.START_X]
+        self.__ball_path_y = [self.START_Y]
+
+        # get ball pos, dist_to_pin
+        self.__ball_pos = np.array([self.START_X, self.START_Y])
+        dist_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+        state_img = self.__generate_state_img(self.START_X, self.START_Y)
+        self.__prev_pixel = self.__get_pixel_on([self.START_X, self.START_Y])
+        self.__state = (state_img, dist_to_pin)
+
+        return self.__state
 
     def step(self, action, debug=False):
         """
@@ -102,7 +113,7 @@ class GolfEnv:
 
         if not area_info[self.AreaInfo.ROLLBACK]:
             # get state img
-            state_img, p = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
+            state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
 
             # get distance to ball
             self.__distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_X, self.PIN_Y]))
@@ -137,33 +148,8 @@ class GolfEnv:
         plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
         # plt.scatter(self.PIN_X, self.PIN_Y, s=500, marker='x', color='black')
         # plt.scatter(self.START_X, self.START_Y, s=200, color='black')
-        # plt.quiver(self.__arrow_head_x, self.__arrow_head_y, self.__arrow_tail_x, self.__arrow_tail_y)
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="black")
-        # plt.scatter(self.__state_img_mask_x, self.__state_img_mask_y, s=0.01, color='black')
         plt.show()
-
-    def reset(self):
-        """
-        :return: tuple of initial state(img, dist), r:rewards term:termination
-        """
-        self.__step_n = 0
-        self.__arrow_head_x = []
-        self.__arrow_head_y = []
-        self.__arrow_tail_x = []
-        self.__arrow_tail_y = []
-        self.__state_img_mask_x = []
-        self.__state_img_mask_y = []
-        self.__ball_path_x = [self.START_X]
-        self.__ball_path_y = [self.START_Y]
-
-        # get ball pos, dist_to_pin
-        self.__ball_pos = np.array([self.START_X, self.START_Y])
-        dist_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
-
-        state_img, pixel = self.__generate_state_img(self.START_X, self.START_Y)
-        self.__prev_pixel = pixel
-        self.__state = (state_img, dist_to_pin)
-        return self.__state
 
     def show_grayscale(self):
         plt.imshow(cv2.cvtColor(self.__img_gray, cv2.COLOR_GRAY2BGR))
@@ -180,11 +166,6 @@ class GolfEnv:
     def __generate_state_img(self, x, y):
         # save data to plot
         angle_to_pin = math.atan2(self.PIN_Y - y, self.PIN_X - x)
-        arrow = np.dot(util.rotation_2d(angle_to_pin), np.array([[1, 0]]).transpose())
-        self.__arrow_head_x.append(x)
-        self.__arrow_head_y.append(y)
-        self.__arrow_tail_x.append(arrow[0, 0])
-        self.__arrow_tail_y.append(arrow[1, 0])
 
         # get tf between fixed frame and moving frame (to use p0 = t01*p1)
         t01 = util.transform_2d(x, y, angle_to_pin)
@@ -200,8 +181,6 @@ class GolfEnv:
                 p0 = np.dot(t01, p1.transpose())
                 x0 = int(round(p0[0, 0]))
                 y0 = int(round(p0[1, 0]))
-                self.__state_img_mask_x.append(x0)
-                self.__state_img_mask_y.append(y0)
 
                 if util.is_within([0, 0], [self.IMG_SIZE_X - 1, self.IMG_SIZE_Y - 1], [x0, y0]):
                     state_img[- state_img_y - 1, - state_img_x - 1] = self.__img_gray[-y0 - 1, x0]
@@ -211,7 +190,4 @@ class GolfEnv:
                 state_img_x = state_img_x + 1
             state_img_y = state_img_y + 1
 
-        # get pixel intensity from generated state image
-        landed_pixel_intensity = state_img[int(self.STATE_IMAGE_OFFSET_HEIGHT - 1), int(self.STATE_IMAGE_WIDTH / 2)]
-
-        return state_img, landed_pixel_intensity
+        return state_img

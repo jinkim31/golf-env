@@ -6,7 +6,7 @@ if __name__ == '__main__':
     env = GolfEnv()
     agent = RandomAgent()
 
-    for _ in range(1):
+    for _ in range(3):
         (img, dist) = env.reset()
         # util.show_grayscale(img)
 
