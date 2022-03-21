@@ -23,12 +23,12 @@ class GolfEnv:
     STATE_IMAGE_OFFSET_HEIGHT = -20
     OUT_OF_IMG_INTENSITY = 255
 
-    class NoAreaNameAssignedException(Exception):
+    class NoAreaInfoAssignedException(Exception):
         def __init__(self, pixel):
             self.pixel = pixel
 
         def __str__(self):
-            return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area name.'
+            return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area info.'
 
     class AreaInfo(IntEnum):
         NAME = 0
@@ -52,15 +52,15 @@ class GolfEnv:
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
-            # pixel:(NAME,      REDX,   RBCK,   TERM,   REWRD)
+            # PIXL   NAME       REDX    RBCK    TERM    RWRD
             -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
             160:    ('FAREWAY', 1.0,    False,  False,  lambda: -1),
             83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
             231:    ('SAND',    0.4,    False,  False,  lambda: -1),
             -1:     ('WATER',   0.4,    False,  False,  lambda: -1),
             77:     ('ROUGH',   1.0,    False,  False,  lambda: -1),
-            0:      ('OB',      1.0,    True,   False,   lambda: -2),
-            255:    ('OB',      1.0,    True,   False,   lambda: -2)
+            0:      ('OB',      1.0,    True,   False,  lambda: -2),
+            255:    ('OB',      1.0,    True,   False,  lambda: -2)
         }
 
     def step(self, action, debug=False):
@@ -93,7 +93,7 @@ class GolfEnv:
 
         # get reward, termination from reward dict
         if pixel not in self.__area_info:
-            raise GolfEnv.NoAreaNameAssignedException(pixel)
+            raise GolfEnv.NoAreaInfoAssignedException(pixel)
         reward = self.__area_info[pixel][self.AreaInfo.REWARD]()
         termination = self.__area_info[pixel][self.AreaInfo.TERMINATION]
 
@@ -110,8 +110,8 @@ class GolfEnv:
                 ': landed on ' + self.__area_info[pixel][self.AreaInfo.NAME] +
                 ' reduction:' + str(reduction) +
                 ' reward:' + str(reward) +
-                ' termination:' + str(termination) +
-                ' rollback:' + str(self.__area_info[pixel][self.AreaInfo.ROLLBACK]))
+                ' rollback:' + str(self.__area_info[pixel][self.AreaInfo.ROLLBACK]) +
+                ' termination:' + str(termination))
 
         return self.__state, reward, termination
 
