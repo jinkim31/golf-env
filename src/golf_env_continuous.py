@@ -1,6 +1,5 @@
 import math
 from enum import IntEnum
-
 import matplotlib.pyplot as plt
 import numpy as np
 import util
@@ -40,7 +39,7 @@ class GolfEnv:
     def __init__(self):
         self.__step_n = 0
         self.__state = None
-        self.__arrow_haed_x = []
+        self.__arrow_head_x = []
         self.__arrow_head_y = []
         self.__arrow_tail_x = []
         self.__arrow_tail_y = []
@@ -54,7 +53,7 @@ class GolfEnv:
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
-            # PIXL   NAME       REDX    RBCK    TERM    RWRD
+            # PIXL   NAME       RDUX    RBCK    TERM    RWRD
             -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
             160:    ('FAREWAY', 1.0,    False,  False,  lambda: -1),
             83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.get_green_reward(self.__distance_to_pin)),
@@ -136,8 +135,8 @@ class GolfEnv:
         plt.ylim([0, self.IMG_SIZE_Y])
         plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
         # plt.scatter(self.PIN_X, self.PIN_Y, s=500, marker='x', color='black')
-        plt.scatter(self.START_X, self.START_Y, s=200, color='black')
-        # plt.quiver(self.__arrow_haed_x, self.__arrow_head_y, self.__arrow_tail_x, self.__arrow_tail_y)
+        # plt.scatter(self.START_X, self.START_Y, s=200, color='black')
+        # plt.quiver(self.__arrow_head_x, self.__arrow_head_y, self.__arrow_tail_x, self.__arrow_tail_y)
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="black")
         # plt.scatter(self.__state_img_mask_x, self.__state_img_mask_y, s=0.01, color='black')
         plt.show()
@@ -147,7 +146,7 @@ class GolfEnv:
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
         self.__step_n = 0
-        self.__arrow_haed_x = []
+        self.__arrow_head_x = []
         self.__arrow_head_y = []
         self.__arrow_tail_x = []
         self.__arrow_tail_y = []
@@ -181,7 +180,7 @@ class GolfEnv:
         # save data to plot
         angle_to_pin = math.atan2(self.PIN_Y - y, self.PIN_X - x)
         arrow = np.dot(util.rotation_2d(angle_to_pin), np.array([[1, 0]]).transpose())
-        self.__arrow_haed_x.append(x)
+        self.__arrow_head_x.append(x)
         self.__arrow_head_y.append(y)
         self.__arrow_tail_x.append(arrow[0, 0])
         self.__arrow_tail_y.append(arrow[1, 0])
