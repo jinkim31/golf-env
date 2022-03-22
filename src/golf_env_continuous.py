@@ -80,7 +80,7 @@ class GolfEnv:
     def step(self, action, debug=False):
         """
         steps simulator
-        :param action: tuple of action(continuous angle, continuous distance)
+        :param action: tuple of action(continuous angle(deg), continuous distance(m))
         :param debug: print debug message of where the ball landed etc.
         :return: tuple of transition (s,r,term)
         s:tuple of state(img, dist), r:rewards term:termination
@@ -92,7 +92,7 @@ class GolfEnv:
         reduced_distance = action[1] * reduction
         angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
         shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[self.VAR_X, self.VAR_Y])
-        delta = np.dot(util.rotation_2d(action[0] + angle_to_pin), shoot.transpose()).transpose()
+        delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
         new_ball_pos = np.array([self.__ball_pos[0] + delta[0][0], self.__ball_pos[1] + delta[0][1]])
@@ -130,12 +130,13 @@ class GolfEnv:
         # print debug
         if debug:
             print(
-                'itr' + str(self.__step_n) +
+                'itr ' + str(self.__step_n) +
                 ': landed on ' + area_info[self.AreaInfo.NAME] +
                 ' reduction:' + str(reduction) +
                 ' reward:' + str(reward) +
                 ' rollback:' + str(area_info[self.AreaInfo.ROLLBACK]) +
-                ' termination:' + str(termination))
+                ' termination:' + str(termination) +
+                ' distance' + str(self.__distance_to_pin))
 
         return self.__state, reward, termination
 
@@ -164,7 +165,7 @@ class GolfEnv:
             return self.OUT_OF_IMG_INTENSITY
 
     def __generate_state_img(self, x, y):
-        # save data to plot
+        # get angle
         angle_to_pin = math.atan2(self.PIN_Y - y, self.PIN_X - x)
 
         # get tf between fixed frame and moving frame (to use p0 = t01*p1)
