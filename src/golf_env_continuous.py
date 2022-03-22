@@ -70,10 +70,10 @@ class GolfEnv:
 
         # get ball pos, dist_to_pin
         self.__ball_pos = np.array([self.START_X, self.START_Y])
-        dist_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+        self.__distance_to_pin = np.linalg.norm(self.__ball_pos - np.array([self.PIN_X, self.PIN_Y]))
         state_img = self.__generate_state_img(self.START_X, self.START_Y)
         self.__prev_pixel = self.__get_pixel_on([self.START_X, self.START_Y])
-        self.__state = (state_img, dist_to_pin)
+        self.__state = (state_img, self.__distance_to_pin)
 
         return self.__state
 
