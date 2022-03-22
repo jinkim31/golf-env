@@ -107,6 +107,9 @@ class GolfEnv:
             raise GolfEnv.NoAreaInfoAssignedException(new_pixel)
         area_info = self.__area_info[new_pixel]
 
+        # get distance to ball
+        self.__distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+
         # get reward, termination from reward dict
         reward = area_info[self.AreaInfo.REWARD]()
         termination = area_info[self.AreaInfo.TERMINATION]
@@ -114,9 +117,6 @@ class GolfEnv:
         if not area_info[self.AreaInfo.ROLLBACK]:
             # get state img
             state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
-
-            # get distance to ball
-            self.__distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_X, self.PIN_Y]))
 
             # update state
             self.__state = (state_img, self.__distance_to_pin)
@@ -136,7 +136,7 @@ class GolfEnv:
                 ' reward:' + str(reward) +
                 ' rollback:' + str(area_info[self.AreaInfo.ROLLBACK]) +
                 ' termination:' + str(termination) +
-                ' distance' + str(self.__distance_to_pin))
+                ' distance:' + str(self.__distance_to_pin))
 
         return self.__state, reward, termination
 
