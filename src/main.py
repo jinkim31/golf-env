@@ -23,7 +23,7 @@ if __name__ == '__main__':
         # util.show_grayscale(img)
 
         while True:
-            ((img, dist), r, term) = env.step((np.random.uniform(-90, 90), np.random.randint(0, 24)), debug=True)
+            ((img, dist), r, term) = env.step((np.random.uniform(-120, 120), np.random.randint(0, 24)), debug=True)
             if term:
                 break
 

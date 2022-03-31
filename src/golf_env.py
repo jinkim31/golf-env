@@ -16,8 +16,6 @@ class GolfEnv(metaclass=ABCMeta):
     START_Y = 116
     PIN_X = 280
     PIN_Y = 430
-    VAR_X = 0
-    VAR_Y = 0
     STATE_IMAGE_WIDTH = 300
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
@@ -102,10 +100,10 @@ class GolfEnv(metaclass=ABCMeta):
 
         # get tf delta of (x,y)
         reduction = self.__area_info[self.__prev_pixel][self.AreaInfo.REDUCTION]
-        distance, var_x, var_y = self._get_flight_model(action[1])
+        distance, dev_x, dev_y = self._get_flight_model(action[1])
         reduced_distance = distance * reduction
         angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
-        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[var_x, var_y])
+        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[dev_x, dev_y])
         delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
@@ -137,14 +135,14 @@ class GolfEnv(metaclass=ABCMeta):
             self.__ball_pos = new_ball_pos
             self.__prev_pixel = new_pixel
         else:
-            # add previous position to indicate ball return when rolled back
+            # add previous position to scatter plot to indicate ball return when rolled back
             self.__ball_path_x.append(self.__ball_pos[0])
             self.__ball_path_y.append(self.__ball_pos[1])
 
         # print debug
         if debug:
-            print('itr ' + str(self.__step_n) + self._generate_debug_str(
-                ': landed on ' + area_info[self.AreaInfo.NAME] +
+            print('itr' + str(self.__step_n) + ': ' + self._generate_debug_str(
+                'landed on ' + area_info[self.AreaInfo.NAME] +
                 ' reduction:' + str(reduction) +
                 ' reward:' + str(reward) +
                 ' rollback:' + str(area_info[self.AreaInfo.ROLLBACK]) +
