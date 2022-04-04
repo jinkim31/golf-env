@@ -48,11 +48,11 @@ class GolfEnv(metaclass=ABCMeta):
         self.__area_info = {
             # PIXL   NAME       RDUX    RBCK    TERM    RWRD
             -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
-            160:    ('FAREWAY', 1.0,    False,  False,  lambda: -1),
-            83:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.green_reward_function(self.__distance_to_pin)),
-            231:    ('SAND',    0.4,    False,  False,  lambda: -1),
-            -1:     ('WATER',   0.4,    False,  False,  lambda: -1),
-            77:     ('ROUGH',   1.0,    False,  False,  lambda: -1),
+            70:     ('FAREWAY', 1.0,    False,  False,  lambda: -1),
+            80:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.green_reward_function(self.__distance_to_pin)),
+            50:     ('SAND',    0.6,    False,  False,  lambda: -1),
+            5:     ('WATER',   0.4,    False,  False,  lambda: -1),
+            55:     ('ROUGH',   0.8,    False,  False,  lambda: -1),
             0:      ('OB',      1.0,    True,   False,  lambda: -2),
             255:    ('OB',      1.0,    True,   False,  lambda: -2)
         }
@@ -160,7 +160,7 @@ class GolfEnv(metaclass=ABCMeta):
         plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
         # plt.scatter(self.PIN_X, self.PIN_Y, s=500, marker='x', color='black')
         # plt.scatter(self.START_X, self.START_Y, s=200, color='black')
-        plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="black")
+        plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
         plt.show()
 
     def show_grayscale(self):

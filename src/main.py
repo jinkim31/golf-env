@@ -3,14 +3,15 @@ import numpy as np
 from src import util
 from src.golf_env_continuous import GolfEnvContinuous
 from src.golf_env_discrete import GolfEnvDiscrete
+from src.heuristic_agent import HeuristicAgent
 from src.random_agent import RandomAgent
 
 if __name__ == '__main__':
     env = GolfEnvDiscrete()
-    agent = RandomAgent()
+    agent = HeuristicAgent()
 
-    for _ in range(1):
-        (img, dist) = env.reset()
+    for _ in range(10):
+        state = env.reset()
         # util.show_grayscale(img)
 
         # ((img, dist), r, term) = env.step((util.deg_to_rad(180), 100), debug=True)
@@ -23,7 +24,7 @@ if __name__ == '__main__':
         # util.show_grayscale(img)
 
         while True:
-            ((img, dist), r, term) = env.step((np.random.uniform(-120, 120), np.random.randint(0, 24)), debug=True)
+            state, r, term = env.step(agent.step(state), debug=True)
             if term:
                 break
 
