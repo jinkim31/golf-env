@@ -10,7 +10,7 @@ if __name__ == '__main__':
     env = GolfEnvDiscrete()
     agent = HeuristicAgent()
 
-    for _ in range(10):
+    for _ in range(1):
         state = env.reset()
         # util.show_grayscale(img)
 
@@ -25,6 +25,7 @@ if __name__ == '__main__':
 
         while True:
             state, r, term = env.step(agent.step(state), debug=True)
+            util.show_grayscale(state[0])
             if term:
                 break
 

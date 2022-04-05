@@ -19,7 +19,7 @@ class GolfEnv(metaclass=ABCMeta):
     STATE_IMAGE_WIDTH = 300
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
-    OUT_OF_IMG_INTENSITY = 255
+    OUT_OF_IMG_INTENSITY = 0
 
     class NoAreaInfoAssignedException(Exception):
         def __init__(self, pixel):
@@ -30,10 +30,11 @@ class GolfEnv(metaclass=ABCMeta):
 
     class AreaInfo(IntEnum):
         NAME = 0
-        REDUCTION = 1
-        ROLLBACK = 2
-        TERMINATION = 3
-        REWARD = 4
+        DIST_COEF = 1
+        DEV_COEF = 2
+        ROLLBACK = 3
+        TERMINATION = 4
+        REWARD = 5
 
     def __init__(self):
         self.__step_n = 0
@@ -46,15 +47,15 @@ class GolfEnv(metaclass=ABCMeta):
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
-            # PIXL   NAME       RDUX    RBCK    TERM    RWRD
-            -1:     ('TEE',     1.0,    False,  False,  lambda: -1),
-            70:     ('FAREWAY', 1.0,    False,  False,  lambda: -1),
-            80:     ('GREEN',   1.0,    False,  True,   lambda: -1 + self.green_reward_function(self.__distance_to_pin)),
-            50:     ('SAND',    0.6,    False,  False,  lambda: -1),
-            5:     ('WATER',   0.4,    False,  False,  lambda: -1),
-            55:     ('ROUGH',   0.8,    False,  False,  lambda: -1),
-            0:      ('OB',      1.0,    True,   False,  lambda: -2),
-            255:    ('OB',      1.0,    True,   False,  lambda: -2)
+            # PIXL   NAME       K_DIST  K_DEV   RBCK    TERM    RWRD
+            -1:     ('TEE',     1.0,    1.0,    False,  False,  lambda: -1),
+            70:     ('FAREWAY', 1.0,    1.0,    False,  False,  lambda: -1),
+            80:     ('GREEN',   1.0,    1.0,    False,  True,   lambda: -1 + self.green_reward_function(self.__distance_to_pin)),
+            50:     ('SAND',    0.6,    1.5,    False,  False,  lambda: -1),
+            5:      ('WATER',   0.4,    1.0,    True,   False,  lambda: -2),
+            55:     ('ROUGH',   0.8,    1.5,    False,  False,  lambda: -1),
+            0:      ('OB',      1.0,    1.0,    True,   False,  lambda: -3),
+            255:    ('OB',      1.0,    1.0,    True,   False,  lambda: -3)
         }
         self.green_reward_function = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
         self.rng = np.random.default_rng()
@@ -98,12 +99,15 @@ class GolfEnv(metaclass=ABCMeta):
         """
         self.__step_n += 1
 
-        # get tf delta of (x,y)
-        reduction = self.__area_info[self.__prev_pixel][self.AreaInfo.REDUCTION]
+        # get flight model
+        dist_coef = self.__area_info[self.__prev_pixel][self.AreaInfo.DIST_COEF]
+        dev_coef = self.__area_info[self.__prev_pixel][self.AreaInfo.DEV_COEF]
         distance, dev_x, dev_y = self._get_flight_model(action[1])
-        reduced_distance = distance * reduction
+        reduced_distance = distance * dist_coef
+
+        # get tf delta of (x,y)
         angle_to_pin = math.atan2(self.PIN_Y - self.__ball_pos[1], self.PIN_X - self.__ball_pos[0])
-        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[dev_x, dev_y])
+        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[dev_x * dev_coef, dev_y * dev_coef])
         delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
@@ -143,11 +147,12 @@ class GolfEnv(metaclass=ABCMeta):
         if debug:
             print('itr' + str(self.__step_n) + ': ' + self._generate_debug_str(
                 'landed on ' + area_info[self.AreaInfo.NAME] +
-                ' reduction:' + str(reduction) +
-                ' reward:' + str(reward) +
+                ' dist_coef:' + str(dist_coef) +
+                ' dev_coef:' + str(dev_coef) +
                 ' rollback:' + str(area_info[self.AreaInfo.ROLLBACK]) +
                 ' termination:' + str(termination) +
-                ' distance:' + str(self.__distance_to_pin)))
+                ' distance:' + str(self.__distance_to_pin) +
+                ' reward:' + str(reward)))
 
         return self.__state, reward, termination
 
