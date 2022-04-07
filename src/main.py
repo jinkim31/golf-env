@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
         while True:
             state, r, term = env.step(agent.step(state), debug=True)
-            util.show_grayscale(state[0])
+            # util.show_grayscale(state[0])
             if term:
                 break
 

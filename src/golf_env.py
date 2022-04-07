@@ -55,13 +55,13 @@ class GolfEnv(metaclass=ABCMeta):
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
             # PIXL   NAME       K_DIST  K_DEV   ON_LAND TERM                RWRD
-            -1:     ('TEE',     1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            70:     ('FAREWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.green_reward_func(d)),
-            50:     ('SAND',    0.6,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            5:      ('WATER',   0.4,    1.0,    self.OnLandAction.SHORE,    False,  lambda d: -2),
-            55:     ('ROUGH',   0.8,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            0:      ('OB',      1.0,    1.0,    self.OnLandAction.ROLLBACK, False,  lambda d: -3),
+            -1: ('TEE', 1.0, 1.0, self.OnLandAction.NONE, False, lambda d: -1),
+            70: ('FAREWAY', 1.0, 1.0, self.OnLandAction.NONE, False, lambda d: -1),
+            80: ('GREEN', 1.0, 1.0, self.OnLandAction.NONE, True, lambda d: -1 + self.green_reward_func(d)),
+            50: ('SAND', 0.6, 1.5, self.OnLandAction.NONE, False, lambda d: -1),
+            5: ('WATER', 0.4, 1.0, self.OnLandAction.SHORE, False, lambda d: -2),
+            55: ('ROUGH', 0.8, 1.5, self.OnLandAction.NONE, False, lambda d: -1),
+            0: ('OB', 1.0, 1.0, self.OnLandAction.ROLLBACK, False, lambda d: -3),
         }
         self.green_reward_func = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
         self.rng = np.random.default_rng()
@@ -76,7 +76,6 @@ class GolfEnv(metaclass=ABCMeta):
         #     return x ** 3 * fit_param[0] + x ** 2 * fit_param[1] + x ** 1 * fit_param[2] + fit_param[3]
         #
         # self.fit_f = np.vectorize(fit)
-
 
     @abstractmethod
     def _get_flight_model(self, distance_action):
@@ -164,8 +163,21 @@ class GolfEnv(metaclass=ABCMeta):
             self.__ball_path_y.append(self._state['ball_pos'][1])
 
         elif area_info[self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
+            # get angle to move
+            from_pin_vector = np.array([new_ball_pos[0] - self.PIN_X, new_ball_pos[1] - self.PIN_Y]).astype('float64')
+            from_pin_vector /= np.linalg.norm(from_pin_vector)
+
+            while True:
+                new_ball_pos += from_pin_vector
+                print(new_ball_pos)
+                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE: break
+
             # get state img
             state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
+
+            # add previous position to scatter plot to indicate ball return when rolled back
+            self.__ball_path_x.append(new_ball_pos[0])
+            self.__ball_path_y.append(new_ball_pos[1])
 
             # update state
             self._state['state_img'] = state_img
