@@ -1,7 +1,5 @@
 import numpy as np
 
-from src.golf_env_discrete import GolfEnvDiscrete
-
 
 class HeuristicAgent:
 
@@ -16,10 +14,10 @@ class HeuristicAgent:
         elif distance > 200:
             club = np.random.randint(5, 7)
         elif distance > 100:
-            club = np.random.randint(1, 19)
+            club = np.random.randint(1, 20)
         elif distance > 70:
-            club = np.random.randint(10, 19)
+            club = np.random.randint(10, 20)
         else:
-            club = np.random.randint(11, 19)
+            club = np.random.randint(11, 20)
 
         return np.random.uniform(-45, 45), club
