@@ -10,12 +10,9 @@ from scipy.interpolate import interp1d
 
 class GolfEnv(metaclass=ABCMeta):
     IMG_PATH = "resources/env.png"
-    IMG_SIZE_X = 500
-    IMG_SIZE_Y = 500
-    START_X = 256
-    START_Y = 116
-    PIN_X = 280
-    PIN_Y = 430
+    IMG_SIZE = np.array([500, 500])
+    START_POS = np.array([256, 116])
+    PIN_POS = np.array([280, 430])
     STATE_IMAGE_WIDTH = 300
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
@@ -83,14 +80,14 @@ class GolfEnv(metaclass=ABCMeta):
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
         self.__step_n = 0
-        self.__ball_path_x = [self.START_X]
-        self.__ball_path_y = [self.START_Y]
+        self.__ball_path_x = [self.START_POS[0]]
+        self.__ball_path_y = [self.START_POS[1]]
 
         # get ball pos, dist_to_pin
-        self._state['ball_pos'] = np.array([self.START_X, self.START_Y])
-        self._state['distance_to_pin'] = np.linalg.norm(self._state['ball_pos'] - np.array([self.PIN_X, self.PIN_Y]))
-        self._state['state_img'] = self.__generate_state_img(self.START_X, self.START_Y)
-        self._state['landed_pixel_intensity'] = self.__get_pixel_on([self.START_X, self.START_Y])
+        self._state['ball_pos'] = self.START_POS
+        self._state['distance_to_pin'] = np.linalg.norm(self._state['ball_pos'] - self.PIN_POS)
+        self._state['state_img'] = self.__generate_state_img(self.START_POS[0], self.START_POS[1])
+        self._state['landed_pixel_intensity'] = self.__get_pixel_on(self.START_POS)
 
         return self._state['state_img'], self._state['distance_to_pin']
 
@@ -112,7 +109,7 @@ class GolfEnv(metaclass=ABCMeta):
         reduced_distance = distance * dist_coef
 
         # get tf delta of (x,y)
-        angle_to_pin = math.atan2(self.PIN_Y - self._state['ball_pos'][1], self.PIN_X - self._state['ball_pos'][0])
+        angle_to_pin = math.atan2(self.PIN_POS[1] - self._state['ball_pos'][1], self.PIN_POS[0] - self._state['ball_pos'][0])
         shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[dev_x * dev_coef, dev_y * dev_coef])
         delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
@@ -130,7 +127,7 @@ class GolfEnv(metaclass=ABCMeta):
         area_info = self.__area_info[new_pixel]
 
         # get distance to ball
-        distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_X, self.PIN_Y]))
+        distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_POS[0], self.PIN_POS[1]]))
 
         # get reward, termination from reward dict
         reward = area_info[self.AreaInfo.REWARD](distance_to_pin)
@@ -153,7 +150,7 @@ class GolfEnv(metaclass=ABCMeta):
 
         elif area_info[self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
             # get angle to move
-            from_pin_vector = np.array([new_ball_pos[0] - self.PIN_X, new_ball_pos[1] - self.PIN_Y]).astype('float64')
+            from_pin_vector = np.array([new_ball_pos[0] - self.PIN_POS[0], new_ball_pos[1] - self.PIN_POS[1]]).astype('float64')
             from_pin_vector /= np.linalg.norm(from_pin_vector)
 
             while True:
@@ -191,9 +188,9 @@ class GolfEnv(metaclass=ABCMeta):
         plt.figure(figsize=(10, 10))
         plt.xlabel('X')
         plt.ylabel('Y')
-        plt.xlim([0, self.IMG_SIZE_X])
-        plt.ylim([0, self.IMG_SIZE_Y])
-        plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE_X, 0, self.IMG_SIZE_Y])
+        plt.xlim([0, self.IMG_SIZE[0]])
+        plt.ylim([0, self.IMG_SIZE[1]])
+        plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
         plt.show()
 
@@ -204,14 +201,14 @@ class GolfEnv(metaclass=ABCMeta):
     def __get_pixel_on(self, ball_pos):
         x0 = int(round(ball_pos[0]))
         y0 = int(round(ball_pos[1]))
-        if util.is_within([0, 0], [self.IMG_SIZE_X - 1, self.IMG_SIZE_Y - 1], [x0, y0]):
+        if util.is_within([0, 0], [self.IMG_SIZE[0] - 1, self.IMG_SIZE[1] - 1], [x0, y0]):
             return self.__img_gray[-y0 - 1, x0]
         else:
             return self.OUT_OF_IMG_INTENSITY
 
     def __generate_state_img(self, x, y):
         # get angle
-        angle_to_pin = math.atan2(self.PIN_Y - y, self.PIN_X - x)
+        angle_to_pin = math.atan2(self.PIN_POS[1] - y, self.PIN_POS[0] - x)
 
         # get tf between fixed frame and moving frame (to use p0 = t01*p1)
         t01 = util.transform_2d(x, y, angle_to_pin)
@@ -228,7 +225,7 @@ class GolfEnv(metaclass=ABCMeta):
                 x0 = int(round(p0[0, 0]))
                 y0 = int(round(p0[1, 0]))
 
-                if util.is_within([0, 0], [self.IMG_SIZE_X - 1, self.IMG_SIZE_Y - 1], [x0, y0]):
+                if util.is_within([0, 0], [self.IMG_SIZE[0] - 1, self.IMG_SIZE[1] - 1], [x0, y0]):
                     state_img[- state_img_y - 1, - state_img_x - 1] = self.__img_gray[-y0 - 1, x0]
                 else:
                     state_img[- state_img_y - 1, - state_img_x - 1] = self.OUT_OF_IMG_INTENSITY
