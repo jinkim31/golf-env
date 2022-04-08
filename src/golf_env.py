@@ -164,7 +164,7 @@ class GolfEnv(metaclass=ABCMeta):
             # get state img
             state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
 
-            # add previous position to scatter plot to indicate ball return when rolled back
+            # add current point to scatter plot to indicate on-landing action
             self.__ball_path_x.append(new_ball_pos[0])
             self.__ball_path_y.append(new_ball_pos[1])
 
