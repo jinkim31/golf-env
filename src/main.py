@@ -13,7 +13,7 @@ if __name__ == '__main__':
     env = GolfEnvDiscrete()
     agent = HeuristicAgent()
 
-    for _ in range(1):
+    for _ in range(100):
         state = env.reset()
         # util.show_grayscale(img)
 
