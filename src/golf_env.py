@@ -54,14 +54,14 @@ class GolfEnv(metaclass=ABCMeta):
             # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
             -1:     ('TEE',     1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
             70:     ('FAREWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.green_reward_func(d)),
+            80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.__green_reward_func(d)),
             50:     ('SAND',    0.6,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
             5:      ('WATER',   0.4,    1.0,    self.OnLandAction.SHORE,    False,  lambda d: -2),
             55:     ('ROUGH',   0.8,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
             0:      ('OB',      1.0,    1.0,    self.OnLandAction.ROLLBACK, False,  lambda d: -3),
         }
-        self.green_reward_func = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
-        self.rng = np.random.default_rng()
+        self.__green_reward_func = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
+        self.__rng = np.random.default_rng()
 
     @abstractmethod
     def _get_flight_model(self, distance_action):
@@ -110,7 +110,7 @@ class GolfEnv(metaclass=ABCMeta):
 
         # get tf delta of (x,y)
         angle_to_pin = math.atan2(self.PIN_POS[1] - self._state['ball_pos'][1], self.PIN_POS[0] - self._state['ball_pos'][0])
-        shoot = np.array([[reduced_distance, 0]]) + self.rng.normal(size=2, scale=[dev_x * dev_coef, dev_y * dev_coef])
+        shoot = np.array([[reduced_distance, 0]]) + self.__rng.normal(size=2, scale=[dev_x * dev_coef, dev_y * dev_coef])
         delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
@@ -192,10 +192,6 @@ class GolfEnv(metaclass=ABCMeta):
         plt.ylim([0, self.IMG_SIZE[1]])
         plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
-        plt.show()
-
-    def show_grayscale(self):
-        plt.imshow(cv2.cvtColor(self.__img_gray, cv2.COLOR_GRAY2BGR))
         plt.show()
 
     def __get_pixel_on(self, ball_pos):

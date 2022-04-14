@@ -1,13 +1,5 @@
-from functools import reduce
-
-import numpy as np
-
-from src import util
-from src.golf_env_continuous import GolfEnvContinuous
 from src.golf_env_discrete import GolfEnvDiscrete
 from src.heuristic_agent import HeuristicAgent
-from src.random_agent import RandomAgent
-import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     env = GolfEnvDiscrete()
