@@ -1,13 +1,14 @@
 from src.golf_env_discrete import GolfEnvDiscrete
 from src.heuristic_agent import HeuristicAgent
+import util
 
 if __name__ == '__main__':
     env = GolfEnvDiscrete()
     agent = HeuristicAgent()
 
-    for _ in range(100):
-        state = env.reset()
-        # util.show_grayscale(img)
+    for _ in range(1):
+        state = env.reset_randomized()
+        #util.show_grayscale(state[0])
 
         # ((img, dist), r, term) = env.step((util.deg_to_rad(180), 100), debug=True)
         # util.show_grayscale(img)
@@ -20,7 +21,7 @@ if __name__ == '__main__':
 
         while True:
             state, r, term = env.step(agent.step(state), debug=True)
-            # util.show_grayscale(state[0])
+            #util.show_grayscale(state[0])
             if term:
                 break
 

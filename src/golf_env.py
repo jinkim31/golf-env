@@ -52,13 +52,13 @@ class GolfEnv(metaclass=ABCMeta):
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__area_info = {
             # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
-            -1:     ('TEE',     1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            70:     ('FAREWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.__green_reward_func(d)),
-            50:     ('SAND',    0.6,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            5:      ('WATER',   0.4,    1.0,    self.OnLandAction.SHORE,    False,  lambda d: -2),
-            55:     ('ROUGH',   0.8,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            0:      ('OB',      1.0,    1.0,    self.OnLandAction.ROLLBACK, False,  lambda d: -3),
+            -1: ('TEE', 1.0, 1.0, self.OnLandAction.NONE, False, lambda d: -1),
+            70: ('FAREWAY', 1.0, 1.0, self.OnLandAction.NONE, False, lambda d: -1),
+            80: ('GREEN', 1.0, 1.0, self.OnLandAction.NONE, True, lambda d: -1 + self.__green_reward_func(d)),
+            50: ('SAND', 0.6, 1.5, self.OnLandAction.NONE, False, lambda d: -1),
+            5: ('WATER', 0.4, 1.0, self.OnLandAction.SHORE, False, lambda d: -2),
+            55: ('ROUGH', 0.8, 1.5, self.OnLandAction.NONE, False, lambda d: -1),
+            0: ('OB', 1.0, 1.0, self.OnLandAction.ROLLBACK, False, lambda d: -3),
         }
         self.__green_reward_func = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
         self.__rng = np.random.default_rng()
@@ -109,8 +109,10 @@ class GolfEnv(metaclass=ABCMeta):
         reduced_distance = distance * dist_coef
 
         # get tf delta of (x,y)
-        angle_to_pin = math.atan2(self.PIN_POS[1] - self._state['ball_pos'][1], self.PIN_POS[0] - self._state['ball_pos'][0])
-        shoot = np.array([[reduced_distance, 0]]) + self.__rng.normal(size=2, scale=[dev_x * dev_coef, dev_y * dev_coef])
+        angle_to_pin = math.atan2(self.PIN_POS[1] - self._state['ball_pos'][1],
+                                  self.PIN_POS[0] - self._state['ball_pos'][0])
+        shoot = np.array([[reduced_distance, 0]]) + self.__rng.normal(size=2,
+                                                                      scale=[dev_x * dev_coef, dev_y * dev_coef])
         delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
         # offset tf by delta to derive new ball pose
@@ -150,13 +152,15 @@ class GolfEnv(metaclass=ABCMeta):
 
         elif area_info[self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
             # get angle to move
-            from_pin_vector = np.array([new_ball_pos[0] - self.PIN_POS[0], new_ball_pos[1] - self.PIN_POS[1]]).astype('float64')
+            from_pin_vector = np.array([new_ball_pos[0] - self.PIN_POS[0], new_ball_pos[1] - self.PIN_POS[1]]).astype(
+                'float64')
             from_pin_vector /= np.linalg.norm(from_pin_vector)
 
             while True:
                 new_ball_pos += from_pin_vector
                 print(new_ball_pos)
-                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE: break
+                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][
+                           self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE: break
 
             # get state img
             state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
@@ -230,3 +234,31 @@ class GolfEnv(metaclass=ABCMeta):
             state_img_y = state_img_y + 1
 
         return state_img
+
+    def reset_randomized(self):
+        """
+        :return: tuple of initial state(img, dist), r:rewards term:termination
+        """
+
+        while True:
+            rand_pos = np.random.randint([0, 0], self.IMG_SIZE)
+            pixel = self.__get_pixel_on(rand_pos)
+
+            if pixel not in self.__area_info:
+                raise GolfEnv.NoAreaInfoAssignedException(pixel)
+
+            area_info = self.__area_info[pixel]
+            if area_info[self.AreaInfo.NAME] == 'FAREWAY' or area_info[self.AreaInfo.NAME] == 'ROUGH':
+                break
+
+        self.__step_n = 0
+        self.__ball_path_x = [rand_pos[0]]
+        self.__ball_path_y = [rand_pos[1]]
+
+        # get ball pos, dist_to_pin
+        self._state['ball_pos'] = rand_pos
+        self._state['distance_to_pin'] = np.linalg.norm(self._state['ball_pos'] - self.PIN_POS)
+        self._state['state_img'] = self.__generate_state_img(rand_pos[0], rand_pos[1])
+        self._state['landed_pixel_intensity'] = self.__get_pixel_on(rand_pos)
+
+        return self._state['state_img'], self._state['distance_to_pin']
