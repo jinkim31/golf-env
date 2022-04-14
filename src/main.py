@@ -7,7 +7,7 @@ if __name__ == '__main__':
     agent = HeuristicAgent()
 
     for _ in range(1):
-        state = env.reset_randomized()
+        state = env.reset_randomized(max_timestep=10)
         #util.show_grayscale(state[0])
 
         # ((img, dist), r, term) = env.step((util.deg_to_rad(180), 100), debug=True)

@@ -40,6 +40,7 @@ class GolfEnv(metaclass=ABCMeta):
 
     def __init__(self):
         self.__step_n = 0
+        self.__max_step_n = -1
         self.__ball_path_x = []
         self.__ball_path_y = []
         self._state = {
@@ -186,6 +187,9 @@ class GolfEnv(metaclass=ABCMeta):
                 ' distance:' + str(self._state['distance_to_pin']) +
                 ' reward:' + str(reward)))
 
+        if 0 < self.__max_step_n <= self.__step_n:
+            termination = True
+
         return (self._state['state_img'], self._state['distance_to_pin']), reward, termination
 
     def plot(self):
@@ -235,10 +239,12 @@ class GolfEnv(metaclass=ABCMeta):
 
         return state_img
 
-    def reset_randomized(self):
+    def reset_randomized(self, max_timestep=-1):
         """
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
+
+        self.__max_step_n = max_timestep
 
         while True:
             rand_pos = np.random.randint([0, 0], self.IMG_SIZE)
