@@ -6,6 +6,8 @@ import util
 import cv2
 from abc import *
 from scipy.interpolate import interp1d
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 class GolfEnv(metaclass=ABCMeta):
