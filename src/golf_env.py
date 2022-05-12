@@ -56,7 +56,7 @@ class GolfEnv(metaclass=ABCMeta):
         self.__area_info = {
             # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
             -1:     ('TEE',     1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            70:     ('FAREWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
+            70:     ('FAIRWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
             80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.__green_reward_func(d)),
             50:     ('SAND',    0.6,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
             5:      ('WATER',   0.4,    1.0,    self.OnLandAction.SHORE,    False,  lambda d: -2),
@@ -259,7 +259,7 @@ class GolfEnv(metaclass=ABCMeta):
                 raise GolfEnv.NoAreaInfoAssignedException(pixel)
 
             area_info = self.__area_info[pixel]
-            if area_info[self.AreaInfo.NAME] == 'FAREWAY' or area_info[self.AreaInfo.NAME] == 'ROUGH':
+            if area_info[self.AreaInfo.NAME] == 'FAIRWAY' or area_info[self.AreaInfo.NAME] == 'ROUGH':
                 break
 
         self.__step_n = 0
