@@ -165,7 +165,6 @@ class GolfEnv(metaclass=ABCMeta):
 
             while True:
                 new_ball_pos += from_pin_vector
-                print(new_ball_pos)
                 if not self.__area_info[self.__get_pixel_on(new_ball_pos)][
                            self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE: break
 
