@@ -4,23 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import util
 import cv2
-from abc import *
 from scipy.interpolate import interp1d
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
-class GolfEnv(metaclass=ABCMeta):
-    IMG_PATH = "resources/env.png"
-    IMG_SIZE = np.array([500, 500])
-    START_POS = np.array([256, 116])
-    PIN_POS = np.array([280, 430])
-    STATE_IMAGE_WIDTH = 300
-    STATE_IMAGE_HEIGHT = 300
-    STATE_IMAGE_OFFSET_HEIGHT = -20
-    OUT_OF_IMG_INTENSITY = 0
-
+class GolfEnv:
     class NoAreaInfoAssignedException(Exception):
         def __init__(self, pixel):
             self.pixel = pixel
@@ -35,6 +25,7 @@ class GolfEnv(metaclass=ABCMeta):
             self.ball_pos = None
             self.distance_to_pin = None
             self.landed_pixel_intensity = None
+            self.flight_model = None
 
     class AreaInfo(IntEnum):
         NAME = 0
@@ -49,6 +40,48 @@ class GolfEnv(metaclass=ABCMeta):
         ROLLBACK = 1
         SHORE = 2
 
+    IMG_PATH = "resources/env.png"
+    IMG_SIZE = np.array([500, 500])
+    START_POS = np.array([256, 116])
+    PIN_POS = np.array([280, 430])
+    STATE_IMAGE_WIDTH = 300
+    STATE_IMAGE_HEIGHT = 300
+    STATE_IMAGE_OFFSET_HEIGHT = -20
+    OUT_OF_IMG_INTENSITY = 0
+    AREA_INFO = {
+        # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
+        -1: ('TEE', 1.0, 1.0, OnLandAction.NONE, False, lambda d: -1),
+        70: ('FAIRWAY', 1.0, 1.0, OnLandAction.NONE, False, lambda d: -1),
+        80: ('GREEN', 1.0, 1.0, OnLandAction.NONE, True, lambda d: -1 + interp1d([0, 1, 3, 15, 100], [-1, -1, -2, -3, -3])(d)),
+        50: ('SAND', 0.6, 1.5, OnLandAction.NONE, False, lambda d: -1),
+        5: ('WATER', 0.4, 1.0, OnLandAction.SHORE, False, lambda d: -2),
+        55: ('ROUGH', 0.8, 1.5, OnLandAction.NONE, False, lambda d: -1),
+        0: ('OB', 1.0, 1.0, OnLandAction.ROLLBACK, False, lambda d: -3),
+    }
+    FLIGHT_MODELS = (
+        # NAME  DIST    DEV_X   DEV_Y
+        ('DR', 230, 60, 60),
+        ('W3', 215, 55, 55),
+        ('W5', 195, 40, 40),
+        ('I3', 180, 40, 40),
+        ('I4', 170, 35, 35),
+        ('I5', 160, 30, 30),
+        ('I6', 150, 30, 30),
+        ('I7', 140, 30, 30),
+        ('I8', 130, 30, 30),
+        ('I9', 115, 35, 35),
+        ('PW', 105, 40, 40),
+        ('SW', 80, 40, 40),
+        ('SW', 70, 35, 35),
+        ('SW', 60, 30, 30),
+        ('SW', 50, 20, 20),
+        ('SW', 40, 15, 15),
+        ('SW', 30, 10, 10),
+        ('SW', 20, 5, 5),
+        ('SW', 10, 3, 3),
+        ('SW', 5, 1, 1),
+    )
+
     def __init__(self):
         self.__step_n = 0
         self.__max_step_n = -1
@@ -57,17 +90,6 @@ class GolfEnv(metaclass=ABCMeta):
         self.__state = self.State()
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
-        self.__area_info = {
-            # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
-            -1:     ('TEE',     1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            70:     ('FAIRWAY', 1.0,    1.0,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            80:     ('GREEN',   1.0,    1.0,    self.OnLandAction.NONE,     True,   lambda d: -1 + self.__green_reward_func(d)),
-            50:     ('SAND',    0.6,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            5:      ('WATER',   0.4,    1.0,    self.OnLandAction.SHORE,    False,  lambda d: -2),
-            55:     ('ROUGH',   0.8,    1.5,    self.OnLandAction.NONE,     False,  lambda d: -1),
-            0:      ('OB',      1.0,    1.0,    self.OnLandAction.ROLLBACK, False,  lambda d: -3),
-        }
-        self.__green_reward_func = interp1d(np.array([0, 1, 3, 15, 100]), np.array([-1, -1, -2, -3, -3]))
         self.__rng = np.random.default_rng()
 
     def reset(self, randomize_initial_pos=False, max_timestep=-1):
@@ -105,16 +127,12 @@ class GolfEnv(metaclass=ABCMeta):
 
         return self.__state.state_img, self.__state.distance_to_pin
 
-    @abstractmethod
-    def _get_flight_model(self, distance_action):
+    def _customize_debug_str(self, msg):
         """
-        :param distance_action: scalar of distance action, can be either discrete or continuous depending on
-        subclass implementation
-        :return: tuple of ball flight model (distance, var_x, var_y)
+        template method for customizing debug msg
+        :param msg: original debug string
+        :return: customized debug string
         """
-        pass
-
-    def _generate_debug_str(self, msg):
         return msg
 
     def step(self, action, accurate_shots=False, debug=False):
@@ -128,13 +146,14 @@ class GolfEnv(metaclass=ABCMeta):
         self.__step_n += 1
 
         # get flight model
-        area_info = self.__area_info[self.__state.landed_pixel_intensity]
+        area_info = GolfEnv.AREA_INFO[self.__state.landed_pixel_intensity]
         dist_coef = area_info[self.AreaInfo.DIST_COEF]
         dev_coef = math.sqrt(area_info[self.AreaInfo.DEV_COEF])
-        distance, dev_x, dev_y = self._get_flight_model(action[1])
+        self.__state.flight_model = GolfEnv.FLIGHT_MODELS[action[1]]
+        club_name, distance, dev_x, dev_y = self.__state.flight_model
         reduced_distance = distance * dist_coef
 
-        # nullify deviations if accurate_shots option is true
+        # nullify deviations if accurate_shots option is on
         if accurate_shots:
             dev_coef = 0.0
 
@@ -154,9 +173,9 @@ class GolfEnv(metaclass=ABCMeta):
 
         # get landed pixel intensity, area info
         new_pixel = self.__get_pixel_on(new_ball_pos)
-        if new_pixel not in self.__area_info:
+        if new_pixel not in GolfEnv.AREA_INFO:
             raise GolfEnv.NoAreaInfoAssignedException(new_pixel)
-        area_info = self.__area_info[new_pixel]
+        area_info = GolfEnv.AREA_INFO[new_pixel]
 
         # get distance to ball
         distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_POS[0], self.PIN_POS[1]]))
@@ -188,8 +207,8 @@ class GolfEnv(metaclass=ABCMeta):
 
             while True:
                 new_ball_pos += from_pin_vector
-                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][
-                           self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE: break
+                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
+                    break
 
             # get state img
             state_img = self.__generate_state_img(new_ball_pos[0], new_ball_pos[1])
@@ -206,7 +225,7 @@ class GolfEnv(metaclass=ABCMeta):
 
         # print debug
         if debug:
-            print('itr' + str(self.__step_n) + ': ' + self._generate_debug_str(
+            print('itr' + str(self.__step_n) + ': ' + self._customize_debug_str(
                 'landed on ' + area_info[self.AreaInfo.NAME] +
                 ' dist_coef:' + str(dist_coef) +
                 ' dev_coef:' + str(dev_coef) +
