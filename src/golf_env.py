@@ -93,7 +93,10 @@ class GolfEnv:
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
 
-    def reset(self, randomize_initial_pos=False, max_timestep=-1, regenerate_club_availability=False):
+    def reset(self,
+              randomize_initial_pos=False,
+              max_timestep=-1,
+              regenerate_club_availability=False):
         """
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
@@ -111,7 +114,6 @@ class GolfEnv:
                 self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.FLIGHT_MODELS))
                 if np.max(self.__state.club_availability) == 1:
                     break
-            print('clubs:', self.__state.club_availability)
 
         # randomize initial pose when randomize_initial_pos is True
         if randomize_initial_pos:
@@ -153,13 +155,14 @@ class GolfEnv:
         # when unavailable club is picked return previous state with reward of -1
         if self.__state.club_availability[action[1]] == 0:
             print(
-                'itr' + str(self.__step_n) + ': ' +
+                'itr' + str(self.__step_n) + ':' +
                 ' picked unavailable club:' + str(GolfEnv.FLIGHT_MODELS[action[1]]) +
                 ' termination:False' +
                 ' distance:' + str(self.__state.distance_to_pin) +
                 ' reward:-1'
             )
-            return (self.__state.state_img, self.__state.distance_to_pin), -1, False
+
+            return (self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability), -1, 0 < self.__max_step_n <= self.__step_n
 
         # get flight model
         area_info = GolfEnv.AREA_INFO[self.__state.landed_pixel_intensity]
@@ -255,7 +258,7 @@ class GolfEnv:
         if 0 < self.__max_step_n <= self.__step_n:
             termination = True
 
-        return (self.__state.state_img, self.__state.distance_to_pin), reward, termination
+        return (self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability), reward, termination
 
     def plot(self):
         plt.figure(figsize=(10, 10))
