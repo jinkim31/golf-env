@@ -1,6 +1,5 @@
 from golf_env import GolfEnv
 from heuristic_agent import HeuristicAgent
-import util
 
 if __name__ == '__main__':
     env = GolfEnv()
