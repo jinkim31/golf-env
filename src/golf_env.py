@@ -91,6 +91,7 @@ class GolfEnv:
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
+        self.club_availability = np.ones(len(GolfEnv.AREA_INFO))
 
     def reset(self, randomize_initial_pos=False, max_timestep=-1):
         """
