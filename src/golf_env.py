@@ -50,37 +50,37 @@ class GolfEnv:
     STATE_IMAGE_OFFSET_HEIGHT = -20
     OUT_OF_IMG_INTENSITY = 0
     AREA_INFO = {
-        # PIXL   NAME       K_DIST  K_DEV   ON_LAND                     TERM    RWRD
-        -1: ('TEE', 1.0, 1.0, OnLandAction.NONE, False, lambda d: -1),
-        70: ('FAIRWAY', 1.0, 1.0, OnLandAction.NONE, False, lambda d: -1),
-        80: ('GREEN', 1.0, 1.0, OnLandAction.NONE, True, lambda d: -1 + interp1d([0, 1, 3, 15, 100], [-1, -1, -2, -3, -3])(d)),
-        50: ('SAND', 0.6, 1.5, OnLandAction.NONE, False, lambda d: -1),
-        5: ('WATER', 0.4, 1.0, OnLandAction.SHORE, False, lambda d: -2),
-        55: ('ROUGH', 0.8, 1.5, OnLandAction.NONE, False, lambda d: -1),
-        0: ('OB', 1.0, 1.0, OnLandAction.ROLLBACK, False, lambda d: -3),
+        # PIXL  NAME        K_DIST  K_DEV   ON_LAND                 TERM    RWRD
+        -1:     ('TEE',     1.0,    1.0,    OnLandAction.NONE,      False,  lambda d: -1),
+        70:     ('FAIRWAY', 1.0,    1.0,    OnLandAction.NONE,      False,  lambda d: -1),
+        80:     ('GREEN',   1.0,    1.0,    OnLandAction.NONE,      True,   lambda d: -1 + interp1d([0, 1, 3, 15, 100], [-1, -1, -2, -3, -3])(d)),
+        50:     ('SAND',    0.6,    1.5,    OnLandAction.NONE,      False, lambda d: -1),
+        5:      ('WATER',   0.4,    1.0,    OnLandAction.SHORE,     False, lambda d: -2),
+        55:     ('ROUGH',   0.8,    1.5,    OnLandAction.NONE,      False, lambda d: -1),
+        0:      ('OB',      1.0,    1.0,    OnLandAction.ROLLBACK, False,   lambda d: -3),
     }
     FLIGHT_MODELS = (
-        # NAME  DIST    DEV_X   DEV_Y
-        ('DR', 210.3, 54.8 / 3, 8.6 / 3),
-        ('W3', 196.6, 50.3 / 3, 7.6 / 3),
-        ('W5', 178.3, 36.6 / 3, 6.6 / 3),
-        ('I3', 164.6, 36.6 / 3, 5.9 / 3),
-        ('I4', 155.4, 32.0 / 3, 5.5 / 3),
-        ('I5', 146.3, 27.4 / 3, 5.1 / 3),
-        ('I6', 137.2, 27.4 / 3, 4.8 / 3),
-        ('I7', 128.0, 27.4 / 3, 4.5 / 3),
-        ('I8', 118.9, 27.4 / 3, 4.3 / 3),
-        ('I9', 105.2, 32.0 / 3, 3.9 / 3),
-        ('PW', 96.0, 36.6 / 3, 3.7 / 3),
-        ('SW', 80, 36.6 / 3, 3.3 / 3),
-        ('SW', 70, 32.0 / 3, 3.2 / 3),
-        ('SW', 60, 30 / 3, 3.1 / 3),
-        ('SW', 50, 20 / 3, 3.0 / 3),
-        ('SW', 40, 15 / 3, 2.9 / 3),
-        ('SW', 30, 10 / 3, 2.8 / 3),
-        ('SW', 20, 5 / 3, 2.7 / 3),
-        ('SW', 10, 3 / 3, 2.65 / 3),
-        ('SW', 5, 1 / 3, 2.6 / 3)
+        # NAME  DIST    DEV_X       DEV_Y
+        ('DR',  210.3,  54.8 / 3,   8.6 / 3),
+        ('W3',  196.6,  50.3 / 3,   7.6 / 3),
+        ('W5',  178.3,  36.6 / 3,   6.6 / 3),
+        ('I3',  164.6,  36.6 / 3,   5.9 / 3),
+        ('I4',  155.4,  32.0 / 3,   5.5 / 3),
+        ('I5',  146.3,  27.4 / 3,   5.1 / 3),
+        ('I6',  137.2,  27.4 / 3,   4.8 / 3),
+        ('I7',  128.0,  27.4 / 3,   4.5 / 3),
+        ('I8',  118.9,  27.4 / 3,   4.3 / 3),
+        ('I9',  105.2,  32.0 / 3,   3.9 / 3),
+        ('PW',  96.0,   36.6 / 3,   3.7 / 3),
+        ('SW',  80,     36.6 / 3,   3.3 / 3),
+        ('SW',  70,     32.0 / 3,   3.2 / 3),
+        ('SW',  60,     30 / 3,     3.1 / 3),
+        ('SW',  50,     20 / 3,     3.0 / 3),
+        ('SW',  40,     15 / 3,     2.9 / 3),
+        ('SW',  30,     10 / 3,     2.8 / 3),
+        ('SW',  20,     5 / 3,      2.7 / 3),
+        ('SW',  10,     3 / 3,      2.65 / 3),
+        ('SW',  5,      1 / 3,      2.6 / 3)
     )
 
     def __init__(self):
