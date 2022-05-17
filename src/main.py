@@ -6,8 +6,8 @@ if __name__ == '__main__':
     env = GolfEnvDiscrete()
     agent = HeuristicAgent()
 
-    for _ in range(1):
-        state = env.reset_randomized(max_timestep=10)
+    for _ in range(10):
+        state = env.reset(randomize_initial_pos=True, max_timestep=1)
         #util.show_grayscale(state[0])
 
         # ((img, dist), r, term) = env.step((util.deg_to_rad(180), 100), debug=True)
