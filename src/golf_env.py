@@ -108,10 +108,10 @@ class GolfEnv:
                 rand_pos = np.random.randint([0, 0], self.IMG_SIZE)
                 pixel = self.__get_pixel_on(rand_pos)
 
-                if pixel not in self.__area_info:
+                if pixel not in GolfEnv.AREA_INFO:
                     raise GolfEnv.NoAreaInfoAssignedException(pixel)
 
-                area_info = self.__area_info[pixel]
+                area_info = GolfEnv.AREA_INFO[pixel]
                 if area_info[self.AreaInfo.NAME] == 'FAIRWAY' or area_info[self.AreaInfo.NAME] == 'ROUGH':
                     break
 
@@ -127,17 +127,10 @@ class GolfEnv:
 
         return self.__state.state_img, self.__state.distance_to_pin
 
-    def _customize_debug_str(self, msg):
-        """
-        template method for customizing debug msg
-        :param msg: original debug string
-        :return: customized debug string
-        """
-        return msg
-
     def step(self, action, accurate_shots=False, debug=False):
         """
         steps simulator
+        :param accurate_shots:
         :param action: tuple of action(continuous angle(deg), continuous distance(m))
         :param debug: print debug message of where the ball landed etc.
         :return: tuple of transition (s,r,term)
@@ -207,7 +200,7 @@ class GolfEnv:
 
             while True:
                 new_ball_pos += from_pin_vector
-                if not self.__area_info[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
+                if not GolfEnv.AREA_INFO[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
                     break
 
             # get state img
@@ -225,14 +218,16 @@ class GolfEnv:
 
         # print debug
         if debug:
-            print('itr' + str(self.__step_n) + ': ' + self._customize_debug_str(
+            print(
+                'itr' + str(self.__step_n) + ': ' +
                 'landed on ' + area_info[self.AreaInfo.NAME] +
                 ' dist_coef:' + str(dist_coef) +
                 ' dev_coef:' + str(dev_coef) +
                 ' on_land:' + str(area_info[self.AreaInfo.ON_LAND]) +
                 ' termination:' + str(termination) +
                 ' distance:' + str(self.__state.distance_to_pin) +
-                ' reward:' + str(reward)))
+                ' reward:' + str(reward)
+            )
 
         if 0 < self.__max_step_n <= self.__step_n:
             termination = True
