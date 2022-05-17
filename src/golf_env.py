@@ -26,6 +26,7 @@ class GolfEnv:
             self.distance_to_pin = None
             self.landed_pixel_intensity = None
             self.flight_model = None
+            self.club_availability = None
 
     class AreaInfo(IntEnum):
         NAME = 0
@@ -60,26 +61,26 @@ class GolfEnv:
     }
     FLIGHT_MODELS = (
         # NAME  DIST    DEV_X   DEV_Y
-        ('DR', 230, 60, 60),
-        ('W3', 215, 55, 55),
-        ('W5', 195, 40, 40),
-        ('I3', 180, 40, 40),
-        ('I4', 170, 35, 35),
-        ('I5', 160, 30, 30),
-        ('I6', 150, 30, 30),
-        ('I7', 140, 30, 30),
-        ('I8', 130, 30, 30),
-        ('I9', 115, 35, 35),
-        ('PW', 105, 40, 40),
-        ('SW', 80, 40, 40),
-        ('SW', 70, 35, 35),
-        ('SW', 60, 30, 30),
-        ('SW', 50, 20, 20),
-        ('SW', 40, 15, 15),
-        ('SW', 30, 10, 10),
-        ('SW', 20, 5, 5),
-        ('SW', 10, 3, 3),
-        ('SW', 5, 1, 1),
+        ('DR', 210.3, 54.8 / 3, 8.6 / 3),
+        ('W3', 196.6, 50.3 / 3, 7.6 / 3),
+        ('W5', 178.3, 36.6 / 3, 6.6 / 3),
+        ('I3', 164.6, 36.6 / 3, 5.9 / 3),
+        ('I4', 155.4, 32.0 / 3, 5.5 / 3),
+        ('I5', 146.3, 27.4 / 3, 5.1 / 3),
+        ('I6', 137.2, 27.4 / 3, 4.8 / 3),
+        ('I7', 128.0, 27.4 / 3, 4.5 / 3),
+        ('I8', 118.9, 27.4 / 3, 4.3 / 3),
+        ('I9', 105.2, 32.0 / 3, 3.9 / 3),
+        ('PW', 96.0, 36.6 / 3, 3.7 / 3),
+        ('SW', 80, 36.6 / 3, 3.3 / 3),
+        ('SW', 70, 32.0 / 3, 3.2 / 3),
+        ('SW', 60, 30 / 3, 3.1 / 3),
+        ('SW', 50, 20 / 3, 3.0 / 3),
+        ('SW', 40, 15 / 3, 2.9 / 3),
+        ('SW', 30, 10 / 3, 2.8 / 3),
+        ('SW', 20, 5 / 3, 2.7 / 3),
+        ('SW', 10, 3 / 3, 2.65 / 3),
+        ('SW', 5, 1 / 3, 2.6 / 3)
     )
 
     def __init__(self):
@@ -91,9 +92,8 @@ class GolfEnv:
         self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
-        self.club_availability = np.ones(len(GolfEnv.AREA_INFO))
 
-    def reset(self, randomize_initial_pos=False, max_timestep=-1):
+    def reset(self, randomize_initial_pos=False, max_timestep=-1, regenerate_club_availability=False):
         """
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
@@ -103,7 +103,17 @@ class GolfEnv:
         self.__ball_path_x = [self.START_POS[0]]
         self.__ball_path_y = [self.START_POS[1]]
         self.__state.ball_pos = self.START_POS
+        self.__state.club_availability = np.ones(len(GolfEnv.FLIGHT_MODELS))
 
+        # randomize available clubs when club_availability is True
+        if regenerate_club_availability:
+            while True:
+                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.FLIGHT_MODELS))
+                if np.max(self.__state.club_availability) == 1:
+                    break
+            print('clubs:', self.__state.club_availability)
+
+        # randomize initial pose when randomize_initial_pos is True
         if randomize_initial_pos:
             while True:
                 rand_pos = np.random.randint([0, 0], self.IMG_SIZE)
@@ -137,7 +147,19 @@ class GolfEnv:
         :return: tuple of transition (s,r,term)
         s:tuple of state(img, dist), r:rewards term:termination
         """
+
         self.__step_n += 1
+
+        # when unavailable club is picked return previous state with reward of -1
+        if self.__state.club_availability[action[1]] == 0:
+            print(
+                'itr' + str(self.__step_n) + ': ' +
+                ' picked unavailable club:' + str(GolfEnv.FLIGHT_MODELS[action[1]]) +
+                ' termination:False' +
+                ' distance:' + str(self.__state.distance_to_pin) +
+                ' reward:-1'
+            )
+            return (self.__state.state_img, self.__state.distance_to_pin), -1, False
 
         # get flight model
         area_info = GolfEnv.AREA_INFO[self.__state.landed_pixel_intensity]

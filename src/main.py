@@ -7,7 +7,7 @@ if __name__ == '__main__':
     agent = HeuristicAgent()
 
     for _ in range(1):
-        state = env.reset()
+        state = env.reset(regenerate_club_availability=True)
 
         while True:
             state, r, term = env.step(agent.step(state), debug=True)
