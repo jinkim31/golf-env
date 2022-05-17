@@ -138,7 +138,7 @@ class GolfEnv:
         self.__ball_path_x = [self.__state.ball_pos[0]]
         self.__ball_path_y = [self.__state.ball_pos[1]]
 
-        return self.__state.state_img, self.__state.distance_to_pin
+        return self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability
 
     def step(self, action, accurate_shots=False, debug=False):
         """
