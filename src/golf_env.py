@@ -41,6 +41,13 @@ class GolfEnv:
         ROLLBACK = 1
         SHORE = 2
 
+    class ClubInfo(IntEnum):
+        NAME = 0
+        DIST = 1
+        DEV_X = 2
+        DEV_Y = 3
+        IS_DIST_PROPER = 4
+
     IMG_PATH = "resources/env.png"
     IMG_SIZE = np.array([500, 500])
     START_POS = np.array([256, 116])
@@ -49,39 +56,45 @@ class GolfEnv:
     STATE_IMAGE_HEIGHT = 300
     STATE_IMAGE_OFFSET_HEIGHT = -20
     OUT_OF_IMG_INTENSITY = 0
+
+    # partially disable Pycharm formatter for better readability
+    # @formatter:off
+
     AREA_INFO = {
         # PIXL  NAME        K_DIST  K_DEV   ON_LAND                 TERM    RWRD
         -1:     ('TEE',     1.0,    1.0,    OnLandAction.NONE,      False,  lambda d: -1),
         70:     ('FAIRWAY', 1.0,    1.0,    OnLandAction.NONE,      False,  lambda d: -1),
         80:     ('GREEN',   1.0,    1.0,    OnLandAction.NONE,      True,   lambda d: -1 + interp1d([0, 1, 3, 15, 100], [-1, -1, -2, -3, -3])(d)),
-        50:     ('SAND',    0.6,    1.5,    OnLandAction.NONE,      False, lambda d: -1),
-        5:      ('WATER',   0.4,    1.0,    OnLandAction.SHORE,     False, lambda d: -2),
-        55:     ('ROUGH',   0.8,    1.5,    OnLandAction.NONE,      False, lambda d: -1),
-        0:      ('OB',      1.0,    1.0,    OnLandAction.ROLLBACK, False,   lambda d: -3),
+        50:     ('SAND',    0.6,    1.5,    OnLandAction.NONE,      False,  lambda d: -1),
+        5:      ('WATER',   0.4,    1.0,    OnLandAction.SHORE,     False,  lambda d: -2),
+        55:     ('ROUGH',   0.8,    1.5,    OnLandAction.NONE,      False,  lambda d: -1),
+        0:      ('OB',      1.0,    1.0,    OnLandAction.ROLLBACK,  False,  lambda d: -3),
     }
-    FLIGHT_MODELS = (
-        # NAME  DIST    DEV_X       DEV_Y
-        ('DR',  210.3,  54.8 / 3,   8.6 / 3),
-        ('W3',  196.6,  50.3 / 3,   7.6 / 3),
-        ('W5',  178.3,  36.6 / 3,   6.6 / 3),
-        ('I3',  164.6,  36.6 / 3,   5.9 / 3),
-        ('I4',  155.4,  32.0 / 3,   5.5 / 3),
-        ('I5',  146.3,  27.4 / 3,   5.1 / 3),
-        ('I6',  137.2,  27.4 / 3,   4.8 / 3),
-        ('I7',  128.0,  27.4 / 3,   4.5 / 3),
-        ('I8',  118.9,  27.4 / 3,   4.3 / 3),
-        ('I9',  105.2,  32.0 / 3,   3.9 / 3),
-        ('PW',  96.0,   36.6 / 3,   3.7 / 3),
-        ('SW',  80,     36.6 / 3,   3.3 / 3),
-        ('SW',  70,     32.0 / 3,   3.2 / 3),
-        ('SW',  60,     30 / 3,     3.1 / 3),
-        ('SW',  50,     20 / 3,     3.0 / 3),
-        ('SW',  40,     15 / 3,     2.9 / 3),
-        ('SW',  30,     10 / 3,     2.8 / 3),
-        ('SW',  20,     5 / 3,      2.7 / 3),
-        ('SW',  10,     3 / 3,      2.65 / 3),
-        ('SW',  5,      1 / 3,      2.6 / 3)
+    CLUB_INFO = (
+        # NAME  DIST    DEV_X       DEV_Y       IS_DIST_PROPER
+        ('DR',  210.3,  54.8 / 3,   8.6 / 3,    lambda d: 300 <= d),
+        ('W3',  196.6,  50.3 / 3,   7.6 / 3,    lambda d: 200 <= d < 300),
+        ('W5',  178.3,  36.6 / 3,   6.6 / 3,    lambda d: 200 <= d < 300),
+        ('I3',  164.6,  36.6 / 3,   5.9 / 3,    lambda d: 200 <= d < 300),
+        ('I4',  155.4,  32.0 / 3,   5.5 / 3,    lambda d: 200 <= d < 300),
+        ('I5',  146.3,  27.4 / 3,   5.1 / 3,    lambda d: 100 <= d < 300),
+        ('I6',  137.2,  27.4 / 3,   4.8 / 3,    lambda d: 100 <= d < 300),
+        ('I7',  128.0,  27.4 / 3,   4.5 / 3,    lambda d: 100 <= d < 200),
+        ('I8',  118.9,  27.4 / 3,   4.3 / 3,    lambda d: 100 <= d < 200),
+        ('I9',  105.2,  32.0 / 3,   3.9 / 3,    lambda d: 100 <= d < 200),
+        ('PW',  96.0,   36.6 / 3,   3.7 / 3,    lambda d: 70 <= d < 200),
+        ('SW',  80,     36.6 / 3,   3.3 / 3,    lambda d: d <= 100),
+        ('SW',  70,     32.0 / 3,   3.2 / 3,    lambda d: d <= 100),
+        ('SW',  60,     30 / 3,     3.1 / 3,    lambda d: d <= 100),
+        ('SW',  50,     20 / 3,     3.0 / 3,    lambda d: d <= 100),
+        ('SW',  40,     15 / 3,     2.9 / 3,    lambda d: d <= 100),
+        ('SW',  30,     10 / 3,     2.8 / 3,    lambda d: d <= 100),
+        ('SW',  20,     5 / 3,      2.7 / 3,    lambda d: d <= 100),
+        ('SW',  10,     3 / 3,      2.65 / 3,   lambda d: d <= 100),
+        ('SW',  5,      1 / 3,      2.6 / 3,    lambda d: d <= 100)
     )
+
+    # @formatter:on
 
     def __init__(self):
         self.__step_n = 0
@@ -106,12 +119,12 @@ class GolfEnv:
         self.__ball_path_x = [self.START_POS[0]]
         self.__ball_path_y = [self.START_POS[1]]
         self.__state.ball_pos = self.START_POS
-        self.__state.club_availability = np.ones(len(GolfEnv.FLIGHT_MODELS))
+        self.__state.club_availability = np.ones(len(GolfEnv.CLUB_INFO))
 
         # randomize available clubs when club_availability is True
         if regenerate_club_availability:
             while True:
-                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.FLIGHT_MODELS))
+                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.CLUB_INFO))
                 if np.max(self.__state.club_availability) == 1:
                     break
 
@@ -154,21 +167,25 @@ class GolfEnv:
 
         # when unavailable club is picked return previous state with reward of -1
         if self.__state.club_availability[action[1]] == 0:
+            reward = -1
+            # terminate when max step limit is reached
+            termination = 0 < self.__max_step_n <= self.__step_n
             print(
                 'itr' + str(self.__step_n) + ':' +
-                ' picked unavailable club:' + str(GolfEnv.FLIGHT_MODELS[action[1]]) +
+                ' picked unavailable club:' + str(GolfEnv.CLUB_INFO[action[1]]) +
                 ' termination:False' +
                 ' distance:' + str(self.__state.distance_to_pin) +
                 ' reward:-1'
             )
 
-            return (self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability), -1, 0 < self.__max_step_n <= self.__step_n
+            return (self.__state.state_img, self.__state.distance_to_pin,
+                    self.__state.club_availability), reward, termination
 
         # get flight model
         area_info = GolfEnv.AREA_INFO[self.__state.landed_pixel_intensity]
         dist_coef = area_info[self.AreaInfo.DIST_COEF]
         dev_coef = math.sqrt(area_info[self.AreaInfo.DEV_COEF])
-        self.__state.flight_model = GolfEnv.FLIGHT_MODELS[action[1]]
+        self.__state.flight_model = GolfEnv.CLUB_INFO[action[1]]
         club_name, distance, dev_x, dev_y = self.__state.flight_model
         reduced_distance = distance * dist_coef
 
@@ -226,7 +243,8 @@ class GolfEnv:
 
             while True:
                 new_ball_pos += from_pin_vector
-                if not GolfEnv.AREA_INFO[self.__get_pixel_on(new_ball_pos)][self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
+                if not GolfEnv.AREA_INFO[self.__get_pixel_on(new_ball_pos)][
+                           self.AreaInfo.ON_LAND] == self.OnLandAction.SHORE:
                     break
 
             # get state img
@@ -258,7 +276,8 @@ class GolfEnv:
         if 0 < self.__max_step_n <= self.__step_n:
             termination = True
 
-        return (self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability), reward, termination
+        return (self.__state.state_img, self.__state.distance_to_pin,
+                self.__state.club_availability), reward, termination
 
     def plot(self):
         plt.figure(figsize=(10, 10))
