@@ -1,3 +1,6 @@
+from setuptools.command.dist_info import dist_info
+
+from golf_env import GolfEnv
 import numpy as np
 
 
@@ -7,17 +10,12 @@ class HeuristicAgent:
         pass
 
     def step(self, state):
-        distance = state[1]
+        dist_to_pin = state[1]
+        club_n = len(GolfEnv.CLUB_INFO)
 
-        if distance > 300:
-            club = np.random.randint(0, 5)
-        elif distance > 200:
-            club = np.random.randint(5, 7)
-        elif distance > 100:
-            club = np.random.randint(1, 20)
-        elif distance > 70:
-            club = np.random.randint(10, 20)
-        else:
-            club = np.random.randint(11, 20)
+        while True:
+            club = np.random.randint(club_n)
+            if GolfEnv.CLUB_INFO[club][GolfEnv.ClubInfoIndex.IS_DIST_PROPER](dist_to_pin):
+                break
 
         return np.random.uniform(-45, 45), club
