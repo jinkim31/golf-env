@@ -7,10 +7,10 @@ if __name__ == '__main__':
     agent = RandomAgent()
 
     for _ in range(10):
-        state = env.reset(regenerate_club_availability=True, max_timestep=-1)
+        state = env.reset(max_timestep=-1)
 
         while True:
-            state, r, term = env.step(agent.step(state), regenerate_heuristic_club_availability=True, debug=True)
+            state, r, term = env.step(agent.step(state), debug=True)
             if term:
                 break
 
