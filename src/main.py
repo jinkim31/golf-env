@@ -6,7 +6,7 @@ if __name__ == '__main__':
     env = GolfEnv()
     agent = RandomAgent()
 
-    for _ in range(1):
+    for _ in range(10):
         state = env.reset(regenerate_club_availability=True, max_timestep=-1)
 
         while True:
