@@ -49,11 +49,12 @@ class GolfEnv:
 
     IMG_PATH = "resources/env.png"
     IMG_SIZE = np.array([500, 500])
+    IMG_SAMPLING_STRIDE = 1 * 3.571
     START_POS = np.array([256, 116])
     PIN_POS = np.array([280, 430])
-    STATE_IMAGE_WIDTH = 300
-    STATE_IMAGE_HEIGHT = 300
-    STATE_IMAGE_OFFSET_HEIGHT = -20
+    STATE_IMAGE_WIDTH = 84
+    STATE_IMAGE_HEIGHT = 84
+    STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
     OUT_OF_IMG_INTENSITY = 0
 
     # partially disable Pycharm formatter for better readability
@@ -325,10 +326,10 @@ class GolfEnv:
         state_img = np.zeros((self.STATE_IMAGE_HEIGHT, self.STATE_IMAGE_WIDTH), np.uint8)
         state_img_y = 0
 
-        for y in range(self.STATE_IMAGE_OFFSET_HEIGHT, self.STATE_IMAGE_HEIGHT + self.STATE_IMAGE_OFFSET_HEIGHT):
+        for y in range(int(self.STATE_IMAGE_OFFSET_HEIGHT), self.STATE_IMAGE_HEIGHT + int(self.STATE_IMAGE_OFFSET_HEIGHT)):
             state_img_x = 0
             for x in range(int(-self.STATE_IMAGE_WIDTH / 2), int(self.STATE_IMAGE_WIDTH / 2)):
-                p1 = np.array([y, x, 1])
+                p1 = np.array([y*self.IMG_SAMPLING_STRIDE, x*self.IMG_SAMPLING_STRIDE, 1])
                 p0 = np.dot(t01, p1)
                 x0 = int(round(p0[0]))
                 y0 = int(round(p0[1]))
