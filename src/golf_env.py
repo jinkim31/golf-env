@@ -300,6 +300,20 @@ class GolfEnv:
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
         plt.show()
 
+    def paint(self):
+        start_pos = np.array((self.__ball_path_x[0], self.__ball_path_y[0]))
+        target_pos = np.array((self.__ball_path_x[1], self.__ball_path_y[1]))
+        target_angle = math.atan2(target_pos[1] - start_pos[1],
+                                  target_pos[0] - start_pos[0])
+        target_dist = np.linalg.norm(target_pos - start_pos)
+
+        print('target:'+str(target_pos), target_dist)
+
+        img = self.__img
+        img = cv2.circle(img, (250,250), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)
+        plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
+        plt.show()
+
     def __get_dist_proper_club_availability(self, dist):
         club_n = len(GolfEnv.CLUB_INFO)
         availability = np.zeros(club_n)

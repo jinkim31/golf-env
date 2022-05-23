@@ -3,17 +3,19 @@ from heuristic_agent import HeuristicAgent
 import util
 from random_agent import RandomAgent
 
-if __name__ == '__main__':
+def main():
     env = GolfEnv()
     agent = RandomAgent()
 
     for _ in range(1):
-        state = env.reset(max_timestep=1)
+        state = env.reset(max_timestep=100)
 
         while True:
             state, r, term = env.step(agent.step(state), debug=True)
-            util.show_grayscale(state[0])
+            # util.show_grayscale(state[0])
             if term:
                 break
 
-        #env.plot()
+        env.paint()
+if __name__ == '__main__':
+    main()
