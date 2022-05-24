@@ -7,15 +7,12 @@ def main():
     env = GolfEnv()
     agent = RandomAgent()
 
-    for _ in range(1):
-        state = env.reset(max_timestep=100)
+    state = env.reset(max_timestep=100)
 
-        while True:
-            state, r, term = env.step(agent.step(state), debug=True)
-            # util.show_grayscale(state[0])
-            if term:
-                break
+    env.step((0, 1), accurate_shots=True)
+    env.step((90, 1), accurate_shots=True)
+    env.step((45, 1), accurate_shots=True)
+    env.plot()
 
-        env.paint()
 if __name__ == '__main__':
     main()

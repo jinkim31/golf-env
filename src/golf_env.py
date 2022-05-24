@@ -269,9 +269,9 @@ class GolfEnv:
                 self.__state.ball_pos = new_ball_pos
                 self.__state.landed_pixel_intensity = new_pixel
 
-            # add current point to scatter plot to indicate on-landing action
-            self.__ball_path_x.append(new_ball_pos[0])
-            self.__ball_path_y.append(new_ball_pos[1])
+                # add current point to scatter plot to indicate on-landing action
+                self.__ball_path_x.append(new_ball_pos[0])
+                self.__ball_path_y.append(new_ball_pos[1])
 
         # print debug
         if debug:
@@ -298,6 +298,7 @@ class GolfEnv:
         plt.ylim([0, self.IMG_SIZE[1]])
         plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
+
         plt.show()
 
     def paint(self):
@@ -307,12 +308,19 @@ class GolfEnv:
                                   target_pos[0] - start_pos[0])
         target_dist = np.linalg.norm(target_pos - start_pos)
 
-        print('target:'+str(target_pos), target_dist)
-
         img = self.__img
-        img = cv2.circle(img, (250,250), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)
+        # draw dots
+        for i in range(len(self.__ball_path_x)):
+            img = cv2.circle(img, (int(self.__ball_path_x[i]), self.IMG_SIZE[1]-1 - int(self.__ball_path_y[i])), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)
+        # draw lines
+        for i in range(len(self.__ball_path_x)-1):
+            img = cv2.line(img,
+                           (int(self.__ball_path_x[i]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
+                           (int(self.__ball_path_x[i+1]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i+1])),
+                            (255, 255, 255), 1)
         plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         plt.show()
+        return img
 
     def __get_dist_proper_club_availability(self, dist):
         club_n = len(GolfEnv.CLUB_INFO)
