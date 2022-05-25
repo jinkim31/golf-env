@@ -318,8 +318,8 @@ class GolfEnv:
                            (int(self.__ball_path_x[i]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
                            (int(self.__ball_path_x[i+1]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i+1])),
                             (255, 255, 255), 1)
-        plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
-        plt.show()
+        # plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
+        # plt.show()
         return img
 
     def __get_dist_proper_club_availability(self, dist):
