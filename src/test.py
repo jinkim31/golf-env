@@ -1,11 +1,10 @@
-from golf_env import GolfEnv
-from heuristic_agent import HeuristicAgent
-import util
-from random_agent import RandomAgent
+from . import golf_env
+from . import util
+from . import random_agent
 
 def main():
-    env = GolfEnv()
-    agent = RandomAgent()
+    env = golf_env.GolfEnv()
+    agent = random_agent.RandomAgent()
 
     state = env.reset(max_timestep=100)
 

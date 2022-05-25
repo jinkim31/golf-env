@@ -2,7 +2,7 @@ import math
 from enum import IntEnum
 import matplotlib.pyplot as plt
 import numpy as np
-import util
+from . import util
 import cv2
 from scipy.interpolate import interp1d
 import os
@@ -47,7 +47,7 @@ class GolfEnv:
         DEV_Y = 3
         IS_DIST_PROPER = 4
 
-    IMG_PATH = "resources/env.png"
+    IMG_PATH = os.path.join(os.path.dirname(__file__), '../resources/env.png')
     IMG_SIZE = np.array([500, 500])
     IMG_SAMPLING_STRIDE = 1 * 3.571
     START_POS = np.array([256, 116])
@@ -57,7 +57,7 @@ class GolfEnv:
     STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
     OUT_OF_IMG_INTENSITY = 0
 
-    # partially disable Pycharm formatter for better readability
+    # temporally disable Pycharm formatter for better readability
     # @formatter:off
 
     AREA_INFO = {

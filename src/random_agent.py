@@ -1,5 +1,5 @@
 import numpy as np
-from golf_env import GolfEnv
+from . import golf_env
 
 
 class RandomAgent:
