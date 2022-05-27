@@ -6,6 +6,7 @@ from . import util
 import cv2
 from scipy.interpolate import interp1d
 import os
+import xml.etree.ElementTree as elemTree
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -17,6 +18,13 @@ class GolfEnv:
 
         def __str__(self):
             return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area info.'
+
+    class MapConfigParseException(Exception):
+        def __init__(self, path):
+            self.path = path
+
+        def __str__(self):
+            return 'Error parsing config. File' + str(self.path) + ' seems to be corrupted.'
 
     class State:
         def __init__(self):
@@ -47,7 +55,8 @@ class GolfEnv:
         DEV_Y = 3
         IS_DIST_PROPER = 4
 
-    IMG_PATH = os.path.join(os.path.dirname(__file__), '../resources/env.png')
+    IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
+    IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
     IMG_SIZE = np.array([500, 500])
     IMG_SAMPLING_STRIDE = 1 * 3.571
     START_POS = np.array([256, 116])
@@ -97,14 +106,35 @@ class GolfEnv:
 
     # @formatter:on
 
-    def __init__(self):
+    def __init__(self, map_name):
+        # parse map config xml
+        xml_path = os.path.join(os.path.dirname(__file__), '../configs', map_name+'.xml')
+        tree = elemTree.parse(xml_path)
+
+        try:
+            self.IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_gray').text)
+            self.IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_color').text)
+
+            self.START_POS = np.array([
+                int(tree.find('./tee/x').text),
+                int(tree.find('./tee/y').text)
+            ])
+
+            self.PIN_POS = np.array([
+                int(tree.find('./pin/x').text),
+                int(tree.find('./pin/y').text)
+            ])
+
+        except AttributeError:
+            raise self.MapConfigParseException(xml_path)
+
         self.__step_n = 0
         self.__max_step_n = -1
         self.__ball_path_x = []
         self.__ball_path_y = []
         self.__state = self.State()
-        self.__img = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2RGB)
-        self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH), cv2.COLOR_BGR2GRAY)
+        self.__img_color = cv2.cvtColor(cv2.imread(self.IMG_PATH_COLOR), cv2.COLOR_BGR2RGB)
+        self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
 
     def reset(self,
@@ -296,7 +326,7 @@ class GolfEnv:
         plt.ylabel('Y')
         plt.xlim([0, self.IMG_SIZE[0]])
         plt.ylim([0, self.IMG_SIZE[1]])
-        plt.imshow(plt.imread(self.IMG_PATH), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
+        plt.imshow(plt.imread(self.IMG_PATH_GRAY), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
 
         plt.show()
@@ -308,7 +338,7 @@ class GolfEnv:
                                   target_pos[0] - start_pos[0])
         target_dist = np.linalg.norm(target_pos - start_pos)
 
-        img = self.__img
+        img = self.__img_color
         # draw dots
         for i in range(len(self.__ball_path_x)):
             img = cv2.circle(img, (int(self.__ball_path_x[i]), self.IMG_SIZE[1]-1 - int(self.__ball_path_y[i])), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)

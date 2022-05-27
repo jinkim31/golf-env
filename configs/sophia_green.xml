@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<map>
+  <name>Sophia Green</name>
+  <img_path_color>resources/sophia_green_gray.png</img_path_color>
+  <img_path_gray>resources/sophia_green_gray.png</img_path_gray>
+  <tee>
+    <x>256</x>
+    <y>116</y>
+  </tee>
+  <pin>
+    <x>280</x>
+    <y>430</y>
+  </pin>
+</map>
