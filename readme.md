@@ -3,6 +3,13 @@
 
 Golf environment for training RL agents.
 
+## Dependencies
+
+- numpy
+- cv2
+- matplotlib
+- scipy
+
 ## Download
 
 ```
@@ -10,13 +17,6 @@ Golf environment for training RL agents.
 $ cd <PROJECT_DIR>
 $ git submodule add https://github.com/jinkim31/golf_env.git
 ```
-
-## Dependencies
-
-- numpy
-- cv2
-- matplotlib
-- scipy
 
 ## Demo code
 
