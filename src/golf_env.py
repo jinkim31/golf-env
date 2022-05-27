@@ -114,16 +114,16 @@ class GolfEnv:
         try:
             self.IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_gray').text)
             self.IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_color').text)
-
             self.START_POS = np.array([
                 int(tree.find('./tee/x').text),
                 int(tree.find('./tee/y').text)
             ])
-
             self.PIN_POS = np.array([
                 int(tree.find('./pin/x').text),
                 int(tree.find('./pin/y').text)
             ])
+
+            print('Loaded map ' + tree.find('./name').text + '.')
 
         except AttributeError:
             raise self.MapConfigParseException(xml_path)
