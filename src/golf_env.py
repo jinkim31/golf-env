@@ -123,8 +123,6 @@ class GolfEnv:
                 int(tree.find('./pin/y').text)
             ])
 
-            print('Loaded map ' + tree.find('./name').text + '.')
-
         except AttributeError:
             raise self.MapConfigParseException(xml_path)
 
