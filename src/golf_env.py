@@ -371,7 +371,9 @@ class GolfEnv:
             img = cv2.line(img,
                            (int(self.__ball_path_x[i]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
                            (int(self.__ball_path_x[i+1]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i+1])),
-                            (255, 255, 255), 1)
+                           (255, 255, 255),
+                           1,
+                           cv2.LINE_AA)
         # plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
         # plt.show()
         return img
