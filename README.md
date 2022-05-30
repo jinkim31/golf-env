@@ -12,7 +12,7 @@ Golf environment for training RL agents.
 
 ## Download
 
-```
+```shell
 # in a git repository clone as submodule
 $ cd <PROJECT_DIR>
 $ git submodule add https://github.com/jinkim31/golf_env.git
