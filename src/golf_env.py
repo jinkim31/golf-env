@@ -361,13 +361,8 @@ class GolfEnv:
         plt.show()
 
     def paint(self):
-        start_pos = np.array((self.__ball_path_x[0], self.__ball_path_y[0]))
-        target_pos = np.array((self.__ball_path_x[1], self.__ball_path_y[1]))
-        target_angle = math.atan2(target_pos[1] - start_pos[1],
-                                  target_pos[0] - start_pos[0])
-        target_dist = np.linalg.norm(target_pos - start_pos)
+        img = np.copy(self.__img_color)
 
-        img = self.__img_color
         # draw dots
         for i in range(len(self.__ball_path_x)):
             img = cv2.circle(img, (int(self.__ball_path_x[i]), self.IMG_SIZE[1]-1 - int(self.__ball_path_y[i])), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)
