@@ -19,6 +19,14 @@ class GolfEnv:
         def __str__(self):
             return 'Cannot convert given pixel intensity ' + str(self.pixel) + ' to area info.'
 
+    class InvalidInitialPosException(Exception):
+        def __init__(self, pos, why):
+            self.pos = pos
+            self.why = why
+
+        def __str__(self):
+            return 'Cannot set initial pos ' + str(self.pos) + '. (' + self.why + ')'
+
     class MapConfigParseException(Exception):
         def __init__(self, path):
             self.path = path
@@ -136,11 +144,14 @@ class GolfEnv:
         self.__rng = np.random.default_rng()
 
     def reset(self,
+              initial_pos=None,
               randomize_initial_pos=False,
               max_timestep=-1,
-              regenerate_club_availability=False):
+              regenerate_club_availability=False
+              ):
         """
         reset the environment
+        :param initial_pos:
         :param randomize_initial_pos: randomly select initial position on green and rough
         :param max_timestep: terminates when step_n exceeds max_timestep
         :param regenerate_club_availability: randomize club availability.
@@ -149,8 +160,6 @@ class GolfEnv:
 
         self.__max_step_n = max_timestep
         self.__step_n = 0
-        self.__ball_path_x = [self.START_POS[0]]
-        self.__ball_path_y = [self.START_POS[1]]
         self.__state.ball_pos = self.START_POS
         self.__state.club_availability = np.ones(len(GolfEnv.CLUB_INFO))
         self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self.START_POS)]
@@ -162,6 +171,24 @@ class GolfEnv:
                 if np.max(self.__state.club_availability) == 1:
                     break
 
+        # set initial pose when initial_pos is not None
+        if initial_pos is not None:
+            pixel = self.__get_pixel_on(initial_pos)
+
+            if pixel not in GolfEnv.AREA_INFO:
+                raise GolfEnv.NoAreaInfoAssignedException(pixel)
+
+            area_info = GolfEnv.AREA_INFO[pixel]
+            area_name = area_info[self.AreaInfoIndex.NAME]
+            if not (
+                    area_name == 'FAIRWAY' or
+                    area_name == 'ROUGH'
+            ):
+                raise GolfEnv.InvalidInitialPosException(initial_pos, area_name)
+
+            self.__state.area_info = area_info
+            self.__state.ball_pos = initial_pos
+
         # randomize initial pose when randomize_initial_pos is True
         if randomize_initial_pos:
             while True:
@@ -172,7 +199,11 @@ class GolfEnv:
                     raise GolfEnv.NoAreaInfoAssignedException(pixel)
 
                 area_info = GolfEnv.AREA_INFO[pixel]
-                if area_info[self.AreaInfoIndex.NAME] == 'FAIRWAY' or area_info[self.AreaInfoIndex.NAME] == 'ROUGH':
+                area_name = area_info[self.AreaInfoIndex.NAME]
+                if(
+                        area_name == 'FAIRWAY' or
+                        area_name == 'ROUGH'
+                ):
                     break
 
             self.__state.area_info = area_info
