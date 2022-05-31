@@ -3,6 +3,7 @@
   <name>Sophia Green</name>
   <img_path_color>resources/sophia_green_gray.png</img_path_color>
   <img_path_gray>resources/sophia_green_gray.png</img_path_gray>
+  <args>weights/actor_e_net_a.h5</args>
   <tee>
     <x>256</x>
     <y>116</y>

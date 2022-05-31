@@ -3,6 +3,7 @@
   <name>Straight</name>
   <img_path_color>resources/straight.png</img_path_color>
   <img_path_gray>resources/straight.png</img_path_gray>
+  <args>weights/actor_e_net_a.h5</args>
   <tee>
     <x>253</x>
     <y>56</y>

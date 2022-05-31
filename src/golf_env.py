@@ -63,16 +63,17 @@ class GolfEnv:
         DEV_Y = 3
         IS_DIST_PROPER = 4
 
-    IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
-    IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
-    IMG_SIZE = np.array([500, 500])
-    IMG_SAMPLING_STRIDE = 1 * 3.571
-    START_POS = np.array([256, 116])
-    PIN_POS = np.array([280, 430])
-    STATE_IMAGE_WIDTH = 84
-    STATE_IMAGE_HEIGHT = 84
-    STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
-    OUT_OF_IMG_INTENSITY = 0
+    _IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
+    _IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
+    _IMG_SIZE = np.array([500, 500])
+    _IMG_SAMPLING_STRIDE = 1 * 3.571
+    _START_POS = np.array([256, 116])
+    _PIN_POS = np.array([280, 430])
+    _STATE_IMAGE_WIDTH = 84
+    _STATE_IMAGE_HEIGHT = 84
+    _STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
+    _OUT_OF_IMG_INTENSITY = 0
+    _ARGS = ''
 
     # temporally disable Pycharm formatter for better readability
     # @formatter:off
@@ -120,16 +121,19 @@ class GolfEnv:
         tree = elemTree.parse(xml_path)
 
         try:
-            self.IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_gray').text)
-            self.IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_color').text)
-            self.START_POS = np.array([
+            self._IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_gray').text)
+            self._IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_color').text)
+            self._START_POS = np.array([
                 int(tree.find('./tee/x').text),
                 int(tree.find('./tee/y').text)
             ])
-            self.PIN_POS = np.array([
+            self._PIN_POS = np.array([
                 int(tree.find('./pin/x').text),
                 int(tree.find('./pin/y').text)
             ])
+
+            if tree.find('./args') is not None:
+                self._ARGS = tree.find('./args').text
 
         except AttributeError:
             raise self.MapConfigParseException(xml_path)
@@ -139,8 +143,8 @@ class GolfEnv:
         self.__ball_path_x = []
         self.__ball_path_y = []
         self.__state = self.State()
-        self.__img_color = cv2.cvtColor(cv2.imread(self.IMG_PATH_COLOR), cv2.COLOR_BGR2RGB)
-        self.__img_gray = cv2.cvtColor(cv2.imread(self.IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
+        self.__img_color = cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB)
+        self.__img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
 
     def reset(self,
@@ -160,9 +164,9 @@ class GolfEnv:
 
         self.__max_step_n = max_timestep
         self.__step_n = 0
-        self.__state.ball_pos = self.START_POS
+        self.__state.ball_pos = self._START_POS
         self.__state.club_availability = np.ones(len(GolfEnv.CLUB_INFO))
-        self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self.START_POS)]
+        self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self._START_POS)]
 
         # randomize available clubs when club_availability is True
         if regenerate_club_availability:
@@ -192,7 +196,7 @@ class GolfEnv:
         # randomize initial pose when randomize_initial_pos is True
         if randomize_initial_pos:
             while True:
-                rand_pos = np.random.randint([0, 0], self.IMG_SIZE)
+                rand_pos = np.random.randint([0, 0], self._IMG_SIZE)
                 pixel = self.__get_pixel_on(rand_pos)
 
                 if pixel not in GolfEnv.AREA_INFO:
@@ -210,7 +214,7 @@ class GolfEnv:
             self.__state.ball_pos = rand_pos
 
         # get ball pos, dist_to_pin
-        self.__state.distance_to_pin = np.linalg.norm(self.__state.ball_pos - self.PIN_POS)
+        self.__state.distance_to_pin = np.linalg.norm(self.__state.ball_pos - self._PIN_POS)
         self.__state.state_img = self.__generate_state_img(self.__state.ball_pos)
         self.__state.landed_pixel_intensity = self.__get_pixel_on(self.__state.ball_pos)
 
@@ -261,8 +265,8 @@ class GolfEnv:
                 dev_coef = 0.0
 
             # get tf delta of (x,y)
-            angle_to_pin = math.atan2(self.PIN_POS[1] - self.__state.ball_pos[1],
-                                      self.PIN_POS[0] - self.__state.ball_pos[0])
+            angle_to_pin = math.atan2(self._PIN_POS[1] - self.__state.ball_pos[1],
+                                      self._PIN_POS[0] - self.__state.ball_pos[0])
             shoot = np.array([[reduced_dist, 0]]) + self.__rng.normal(size=2,
                                                                           scale=[dev_x * dev_coef, dev_y * dev_coef])
             delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
@@ -282,7 +286,7 @@ class GolfEnv:
             debug_area_name = area_info[GolfEnv.AreaInfoIndex.NAME]
 
             # get distance to ball
-            distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self.PIN_POS[0], self.PIN_POS[1]]))
+            distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self._PIN_POS[0], self._PIN_POS[1]]))
 
             # get reward, termination from reward dict
             reward = area_info[self.AreaInfoIndex.REWARD](distance_to_pin)
@@ -307,7 +311,7 @@ class GolfEnv:
 
             elif self.__state.area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.SHORE:
                 # get angle to move
-                from_pin_vector = np.array([new_ball_pos[0] - self.PIN_POS[0], new_ball_pos[1] - self.PIN_POS[1]]).astype(
+                from_pin_vector = np.array([new_ball_pos[0] - self._PIN_POS[0], new_ball_pos[1] - self._PIN_POS[1]]).astype(
                     'float64')
                 from_pin_vector /= np.linalg.norm(from_pin_vector)
 
@@ -353,9 +357,9 @@ class GolfEnv:
         plt.figure(figsize=(10, 10))
         plt.xlabel('X')
         plt.ylabel('Y')
-        plt.xlim([0, self.IMG_SIZE[0]])
-        plt.ylim([0, self.IMG_SIZE[1]])
-        plt.imshow(plt.imread(self.IMG_PATH_GRAY), extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
+        plt.xlim([0, self._IMG_SIZE[0]])
+        plt.ylim([0, self._IMG_SIZE[1]])
+        plt.imshow(plt.imread(self._IMG_PATH_GRAY), extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
         plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
 
         plt.show()
@@ -365,12 +369,12 @@ class GolfEnv:
 
         # draw dots
         for i in range(len(self.__ball_path_x)):
-            img = cv2.circle(img, (int(self.__ball_path_x[i]), self.IMG_SIZE[1]-1 - int(self.__ball_path_y[i])), 3, (255,255,255), cv2.FILLED, cv2.LINE_8)
+            img = cv2.circle(img, (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])), 3, (255, 255, 255), cv2.FILLED, cv2.LINE_8)
         # draw lines
         for i in range(len(self.__ball_path_x)-1):
             img = cv2.line(img,
-                           (int(self.__ball_path_x[i]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
-                           (int(self.__ball_path_x[i+1]), self.IMG_SIZE[1] - 1 - int(self.__ball_path_y[i+1])),
+                           (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
+                           (int(self.__ball_path_x[i+1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
                            (255, 255, 255),
                            1,
                            cv2.LINE_AA)
@@ -388,36 +392,39 @@ class GolfEnv:
     def __get_pixel_on(self, ball_pos):
         x0 = int(round(ball_pos[0]))
         y0 = int(round(ball_pos[1]))
-        if util.is_within([0, 0], [self.IMG_SIZE[0] - 1, self.IMG_SIZE[1] - 1], [x0, y0]):
+        if util.is_within([0, 0], [self._IMG_SIZE[0] - 1, self._IMG_SIZE[1] - 1], [x0, y0]):
             return self.__img_gray[-y0 - 1, x0]
         else:
-            return self.OUT_OF_IMG_INTENSITY
+            return self._OUT_OF_IMG_INTENSITY
 
     def __generate_state_img(self, pos):
         # get angle
-        angle_to_pin = math.atan2(self.PIN_POS[1] - pos[1], self.PIN_POS[0] - pos[0])
+        angle_to_pin = math.atan2(self._PIN_POS[1] - pos[1], self._PIN_POS[0] - pos[0])
 
         # get tf between fixed frame and moving frame (to use p0 = t01*p1)
         t01 = util.transform_2d(pos[0], pos[1], angle_to_pin)
 
         # generate image
-        state_img = np.zeros((self.STATE_IMAGE_HEIGHT, self.STATE_IMAGE_WIDTH), np.uint8)
+        state_img = np.zeros((self._STATE_IMAGE_HEIGHT, self._STATE_IMAGE_WIDTH), np.uint8)
         state_img_y = 0
 
-        for y in range(int(self.STATE_IMAGE_OFFSET_HEIGHT), self.STATE_IMAGE_HEIGHT + int(self.STATE_IMAGE_OFFSET_HEIGHT)):
+        for y in range(int(self._STATE_IMAGE_OFFSET_HEIGHT), self._STATE_IMAGE_HEIGHT + int(self._STATE_IMAGE_OFFSET_HEIGHT)):
             state_img_x = 0
-            for x in range(int(-self.STATE_IMAGE_WIDTH / 2), int(self.STATE_IMAGE_WIDTH / 2)):
-                p1 = np.array([y*self.IMG_SAMPLING_STRIDE, x*self.IMG_SAMPLING_STRIDE, 1])
+            for x in range(int(-self._STATE_IMAGE_WIDTH / 2), int(self._STATE_IMAGE_WIDTH / 2)):
+                p1 = np.array([y * self._IMG_SAMPLING_STRIDE, x * self._IMG_SAMPLING_STRIDE, 1])
                 p0 = np.dot(t01, p1)
                 x0 = int(round(p0[0]))
                 y0 = int(round(p0[1]))
 
-                if util.is_within([0, 0], [self.IMG_SIZE[0] - 1, self.IMG_SIZE[1] - 1], [x0, y0]):
+                if util.is_within([0, 0], [self._IMG_SIZE[0] - 1, self._IMG_SIZE[1] - 1], [x0, y0]):
                     state_img[- state_img_y - 1, - state_img_x - 1] = self.__img_gray[-y0 - 1, x0]
                 else:
-                    state_img[- state_img_y - 1, - state_img_x - 1] = self.OUT_OF_IMG_INTENSITY
+                    state_img[- state_img_y - 1, - state_img_x - 1] = self._OUT_OF_IMG_INTENSITY
 
                 state_img_x = state_img_x + 1
             state_img_y = state_img_y + 1
 
         return state_img
+
+    def get_config_args(self):
+        return self._ARGS
