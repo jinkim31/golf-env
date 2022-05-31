@@ -428,3 +428,6 @@ class GolfEnv:
 
     def get_config_args(self):
         return self._ARGS
+
+    def get_timestep(self):
+        return self.__step_n
