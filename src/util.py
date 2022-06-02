@@ -2,6 +2,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import cv2
+import imageio
 
 
 def deg_to_rad(deg):
@@ -46,3 +47,9 @@ def is_within(bounds_min, bounds_max, x, include_equality=True):
 def show_grayscale(img):
     plt.imshow(cv2.cvtColor(img, cv2.COLOR_GRAY2BGR))
     plt.show()
+
+
+def make_gif(frames, path):
+    with imageio.get_writer(path, mode='I') as writer:
+        for i, frame in enumerate(frames):
+            writer.append_data(frame)

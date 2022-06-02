@@ -9,6 +9,7 @@ Golf environment for training RL agents.
 - cv2
 - matplotlib
 - scipy
+- imageio
 
 ## Download
 

@@ -146,15 +146,20 @@ class GolfEnv:
         self.__img_color = cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB)
         self.__img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
+        self.__keyframes = []
+        self.__animation_path = ''
+
 
     def reset(self,
               initial_pos=None,
               randomize_initial_pos=False,
               max_timestep=-1,
-              regenerate_club_availability=False
+              regenerate_club_availability=False,
+              animation_path=''
               ):
         """
         reset the environment
+        :param animation_path:
         :param initial_pos:
         :param randomize_initial_pos: randomly select initial position on green and rough
         :param max_timestep: terminates when step_n exceeds max_timestep
@@ -167,6 +172,7 @@ class GolfEnv:
         self.__state.ball_pos = self._START_POS
         self.__state.club_availability = np.ones(len(GolfEnv.CLUB_INFO))
         self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self._START_POS)]
+        self.__animation_path = animation_path
 
         # randomize available clubs when club_availability is True
         if regenerate_club_availability:
@@ -220,6 +226,9 @@ class GolfEnv:
 
         self.__ball_path_x = [self.__state.ball_pos[0]]
         self.__ball_path_y = [self.__state.ball_pos[1]]
+
+        if self.__animation_path != '':
+            self.__keyframes.append(self.paint())
 
         return self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability
 
@@ -349,6 +358,13 @@ class GolfEnv:
 
         if 0 < self.__max_step_n <= self.__step_n:
             termination = True
+
+        if self.__animation_path != '':
+            self.__keyframes.append(self.paint())
+
+        if termination and self.__animation_path != '':
+            util.make_gif(self.__keyframes, self.__animation_path)
+            self.__keyframes = []
 
         return (self.__state.state_img, self.__state.distance_to_pin,
                 self.__state.club_availability), reward, termination
