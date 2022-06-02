@@ -117,7 +117,7 @@ class GolfEnv:
 
     def __init__(self, map_name):
         # parse map config xml
-        xml_path = os.path.join(os.path.dirname(__file__), '../configs', map_name+'.xml')
+        xml_path = os.path.join(os.path.dirname(__file__), '../configs', map_name + '.xml')
         tree = elemTree.parse(xml_path)
 
         try:
@@ -148,7 +148,6 @@ class GolfEnv:
         self.__rng = np.random.default_rng()
         self.__keyframes = []
         self.__animation_path = ''
-
 
     def reset(self,
               initial_pos=None,
@@ -210,7 +209,7 @@ class GolfEnv:
 
                 area_info = GolfEnv.AREA_INFO[pixel]
                 area_name = area_info[self.AreaInfoIndex.NAME]
-                if(
+                if (
                         area_name == 'FAIRWAY' or
                         area_name == 'ROUGH'
                 ):
@@ -276,8 +275,10 @@ class GolfEnv:
             # get tf delta of (x,y)
             angle_to_pin = math.atan2(self._PIN_POS[1] - self.__state.ball_pos[1],
                                       self._PIN_POS[0] - self.__state.ball_pos[0])
-            shoot = np.array([[reduced_dist, 0]]) + self.__rng.normal(size=2,
-                                                                          scale=[dev_x * dev_coef, dev_y * dev_coef])
+            shoot = np.array([[reduced_dist, 0]]) + self.__rng.normal(
+                size=2,
+                scale=[dev_x * dev_coef, dev_y * dev_coef]
+            )
             delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
             # offset tf by delta to derive new ball pose
@@ -312,16 +313,16 @@ class GolfEnv:
                 self.__state.landed_pixel_intensity = new_pixel
 
             elif area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.ROLLBACK:
-                # use previous state_img
-                new_state_img = self.__state.state_img
                 # add previous position to scatter plot to indicate ball return when rolled back
                 self.__ball_path_x.append(self.__state.ball_pos[0])
                 self.__ball_path_y.append(self.__state.ball_pos[1])
 
             elif self.__state.area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.SHORE:
                 # get angle to move
-                from_pin_vector = np.array([new_ball_pos[0] - self._PIN_POS[0], new_ball_pos[1] - self._PIN_POS[1]]).astype(
-                    'float64')
+                from_pin_vector = np.array(
+                    [new_ball_pos[0] - self._PIN_POS[0],
+                     new_ball_pos[1] - self._PIN_POS[1]]
+                ).astype('float64')
                 from_pin_vector /= np.linalg.norm(from_pin_vector)
 
                 while True:
@@ -385,12 +386,17 @@ class GolfEnv:
 
         # draw dots
         for i in range(len(self.__ball_path_x)):
-            img = cv2.circle(img, (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])), 3, (255, 255, 255), cv2.FILLED, cv2.LINE_8)
+            img = cv2.circle(
+                img,
+                (int(self.__ball_path_x[i]),
+                 self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
+                3, (255, 255, 255), cv2.FILLED, cv2.LINE_8
+            )
         # draw lines
-        for i in range(len(self.__ball_path_x)-1):
+        for i in range(len(self.__ball_path_x) - 1):
             img = cv2.line(img,
                            (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
-                           (int(self.__ball_path_x[i+1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
+                           (int(self.__ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
                            (255, 255, 255),
                            1,
                            cv2.LINE_AA)
@@ -398,6 +404,7 @@ class GolfEnv:
         # plt.show()
         return img
 
+    # noinspection PyMethodMayBeStatic
     def __get_dist_proper_club_availability(self, dist):
         club_n = len(GolfEnv.CLUB_INFO)
         availability = np.zeros(club_n)
@@ -424,7 +431,10 @@ class GolfEnv:
         state_img = np.zeros((self._STATE_IMAGE_HEIGHT, self._STATE_IMAGE_WIDTH), np.uint8)
         state_img_y = 0
 
-        for y in range(int(self._STATE_IMAGE_OFFSET_HEIGHT), self._STATE_IMAGE_HEIGHT + int(self._STATE_IMAGE_OFFSET_HEIGHT)):
+        for y in range(
+                int(self._STATE_IMAGE_OFFSET_HEIGHT),
+                self._STATE_IMAGE_HEIGHT + int(self._STATE_IMAGE_OFFSET_HEIGHT)
+        ):
             state_img_x = 0
             for x in range(int(-self._STATE_IMAGE_WIDTH / 2), int(self._STATE_IMAGE_WIDTH / 2)):
                 p1 = np.array([y * self._IMG_SAMPLING_STRIDE, x * self._IMG_SAMPLING_STRIDE, 1])

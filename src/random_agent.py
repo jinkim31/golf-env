@@ -3,5 +3,6 @@ from . import golf_env
 
 
 class RandomAgent:
+    # noinspection PyMethodMayBeStatic
     def step(self, state):
         return np.random.uniform(-30, 30), np.random.randint(len(golf_env.GolfEnv.CLUB_INFO))
