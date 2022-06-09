@@ -382,7 +382,7 @@ class GolfEnv:
         plt.show()
 
     def paint(self):
-        img = np.copy(self.__img_color)
+        img = np.copy(self.__img_gray)
 
         # draw dots
         for i in range(len(self.__ball_path_x)):

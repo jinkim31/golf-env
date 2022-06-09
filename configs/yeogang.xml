@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<map>
+  <name>Yeogang</name>
+  <img_path_color>resources/yeogang_color.png</img_path_color>
+  <img_path_gray>resources/yeogang_gray.png</img_path_gray>
+  <args>weights/actor_e_net_a.h5</args>
+  <tee>
+    <x>208</x>
+    <y>111</y>
+  </tee>
+  <pin>
+    <x>215</x>
+    <y>404</y>
+  </pin>
+</map>
