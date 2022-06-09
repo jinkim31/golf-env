@@ -191,7 +191,8 @@ class GolfEnv:
             area_name = area_info[self.AreaInfoIndex.NAME]
             if not (
                     area_name == 'FAIRWAY' or
-                    area_name == 'ROUGH'
+                    area_name == 'ROUGH' or
+                    area_name == 'SAND'
             ):
                 raise GolfEnv.InvalidInitialPosException(initial_pos, area_name)
 
@@ -211,7 +212,8 @@ class GolfEnv:
                 area_name = area_info[self.AreaInfoIndex.NAME]
                 if (
                         area_name == 'FAIRWAY' or
-                        area_name == 'ROUGH'
+                        area_name == 'ROUGH' or
+                        area_name == 'SAND'
                 ):
                     break
 
