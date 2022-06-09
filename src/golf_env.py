@@ -74,6 +74,7 @@ class GolfEnv:
     _STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
     _OUT_OF_IMG_INTENSITY = 0
     _ARGS = ''
+    _POSSIBLE_INIT_POS_AREAS = ('FAIRWAY', 'ROUGH', 'SAND')
 
     # temporally disable Pycharm formatter for better readability
     # @formatter:off
@@ -89,7 +90,7 @@ class GolfEnv:
         0:      ('OB',      1.0,    1.0,    OnLandAction.ROLLBACK,  False,  lambda d: -3),
     }
 
-    CLUB_INFO = (
+    SKILL_MODEL = (
         # NAME      DIST    DEV_X       DEV_Y       IS_DIST_PROPER(d: dist to pin)
         ('DR',      210.3,  54.8 / 3,   8.6 / 3,    lambda d: 300 < d),
         ('W3',      196.6,  50.3 / 3,   7.6 / 3,    lambda d: 100 < d),
@@ -143,7 +144,8 @@ class GolfEnv:
         self.__ball_path_x = []
         self.__ball_path_y = []
         self.__state = self.State()
-        self.__img_color = cv2.resize(cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB), dsize=(500,500), interpolation=cv2.INTER_AREA)
+        self.__img_color = cv2.resize(cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB),
+                                      dsize=(500, 500), interpolation=cv2.INTER_AREA)
         self.__img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
         self.__keyframes = []
@@ -169,14 +171,14 @@ class GolfEnv:
         self.__max_step_n = max_timestep
         self.__step_n = 0
         self.__state.ball_pos = self._START_POS
-        self.__state.club_availability = np.ones(len(GolfEnv.CLUB_INFO))
+        self.__state.club_availability = np.ones(len(GolfEnv.SKILL_MODEL))
         self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self._START_POS)]
         self.__animation_path = animation_path
 
         # randomize available clubs when club_availability is True
         if regenerate_club_availability:
             while True:
-                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.CLUB_INFO))
+                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.SKILL_MODEL))
                 if np.max(self.__state.club_availability) == 1:
                     break
 
@@ -189,11 +191,7 @@ class GolfEnv:
 
             area_info = GolfEnv.AREA_INFO[pixel]
             area_name = area_info[self.AreaInfoIndex.NAME]
-            if not (
-                    area_name == 'FAIRWAY' or
-                    area_name == 'ROUGH' or
-                    area_name == 'SAND'
-            ):
+            if area_name not in self._POSSIBLE_INIT_POS_AREAS:
                 raise GolfEnv.InvalidInitialPosException(initial_pos, area_name)
 
             self.__state.area_info = area_info
@@ -210,11 +208,7 @@ class GolfEnv:
 
                 area_info = GolfEnv.AREA_INFO[pixel]
                 area_name = area_info[self.AreaInfoIndex.NAME]
-                if (
-                        area_name == 'FAIRWAY' or
-                        area_name == 'ROUGH' or
-                        area_name == 'SAND'
-                ):
+                if area_name in self._POSSIBLE_INIT_POS_AREAS:
                     break
 
             self.__state.area_info = area_info
@@ -246,7 +240,7 @@ class GolfEnv:
 
         self.__step_n += 1
 
-        debug_club_name = GolfEnv.CLUB_INFO[action[1]][GolfEnv.ClubInfoIndex.NAME]
+        debug_club_name = GolfEnv.SKILL_MODEL[action[1]][GolfEnv.ClubInfoIndex.NAME]
         debug_area_name = ''
 
         if regenerate_heuristic_club_availability:
@@ -266,7 +260,7 @@ class GolfEnv:
             dev_coef = math.sqrt(self.__state.area_info[self.AreaInfoIndex.DEV_COEF])
 
             # get club info, distance, devs, reduced_dist
-            self.__state.club_info = GolfEnv.CLUB_INFO[action[1]]
+            self.__state.club_info = GolfEnv.SKILL_MODEL[action[1]]
             club_name, club_distance, dev_x, dev_y, _ = self.__state.club_info
             reduced_dist = club_distance * dist_coef
 
@@ -417,10 +411,10 @@ class GolfEnv:
 
     # noinspection PyMethodMayBeStatic
     def __get_dist_proper_club_availability(self, dist):
-        club_n = len(GolfEnv.CLUB_INFO)
+        club_n = len(GolfEnv.SKILL_MODEL)
         availability = np.zeros(club_n)
         for i in range(club_n):
-            availability[i] = int(GolfEnv.CLUB_INFO[i][GolfEnv.ClubInfoIndex.IS_DIST_PROPER](dist))
+            availability[i] = int(GolfEnv.SKILL_MODEL[i][GolfEnv.ClubInfoIndex.IS_DIST_PROPER](dist))
         return availability
 
     def __get_pixel_on(self, ball_pos):
@@ -468,3 +462,6 @@ class GolfEnv:
 
     def get_timestep(self):
         return self.__step_n
+
+    def set_skill_model(self, skill_model):
+        self.SKILL_MODEL = skill_model

@@ -10,11 +10,11 @@ class HeuristicAgent:
     # noinspection PyMethodMayBeStatic
     def step(self, state):
         dist_to_pin = state[1]
-        club_n = len(golf_env.GolfEnv.CLUB_INFO)
+        club_n = len(golf_env.GolfEnv.SKILL_MODEL)
 
         while True:
             club = np.random.randint(club_n)
-            if golf_env.GolfEnv.CLUB_INFO[club][golf_env.GolfEnv.ClubInfoIndex.IS_DIST_PROPER](dist_to_pin):
+            if golf_env.GolfEnv.SKILL_MODEL[club][golf_env.GolfEnv.ClubInfoIndex.IS_DIST_PROPER](dist_to_pin):
                 break
 
         return np.random.uniform(-45, 45), club
