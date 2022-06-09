@@ -143,7 +143,7 @@ class GolfEnv:
         self.__ball_path_x = []
         self.__ball_path_y = []
         self.__state = self.State()
-        self.__img_color = cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB)
+        self.__img_color = cv2.resize(cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB), dsize=(500,500), interpolation=cv2.INTER_AREA)
         self.__img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
         self.__rng = np.random.default_rng()
         self.__keyframes = []
@@ -382,7 +382,7 @@ class GolfEnv:
         plt.show()
 
     def paint(self):
-        img = np.copy(self.__img_gray)
+        img = np.copy(self.__img_color)
 
         # draw dots
         for i in range(len(self.__ball_path_x)):
@@ -397,11 +397,20 @@ class GolfEnv:
             img = cv2.line(img,
                            (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
                            (int(self.__ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
+                           (219, 192, 50),
+                           2,
+                           cv2.LINE_AA)
+
+            img = cv2.line(img,
+                           (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
+                           (int(self.__ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
                            (255, 255, 255),
                            1,
                            cv2.LINE_AA)
-        # plt.imshow(img, extent=[0, self.IMG_SIZE[0], 0, self.IMG_SIZE[1]])
-        # plt.show()
+
+        plt.figure(figsize=(10, 10))
+        plt.imshow(img, extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
+        plt.show()
         return img
 
     # noinspection PyMethodMayBeStatic
