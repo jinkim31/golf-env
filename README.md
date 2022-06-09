@@ -27,7 +27,7 @@ from golf_env.src import heuristic_agent
 
 
 def main():
-    env = golf_env.GolfEnv('sophia_green')
+    env = golf_env.GolfEnv('sejong')
     state = env.reset()
     agent = heuristic_agent.HeuristicAgent()
 
