@@ -3,7 +3,7 @@
   <name>Yeogang</name>
   <img_path_color>resources/yeogang_color.png</img_path_color>
   <img_path_gray>resources/yeogang_gray.png</img_path_gray>
-  <args>weights/actor_e_net_a.h5</args>
+  <args></args>
   <tee>
     <x>208</x>
     <y>111</y>

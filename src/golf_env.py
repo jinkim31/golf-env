@@ -74,7 +74,7 @@ class GolfEnv:
     _STATE_IMAGE_OFFSET_HEIGHT = -20 / 3.571
     _OUT_OF_IMG_INTENSITY = 0
     _ARGS = ''
-    _POSSIBLE_INIT_POS_AREAS = ('FAIRWAY', 'ROUGH', 'SAND')
+    _POSSIBLE_INIT_POS_AREAS = ('GREEN', 'FAIRWAY', 'ROUGH', 'SAND')
 
     # temporally disable Pycharm formatter for better readability
     # @formatter:off

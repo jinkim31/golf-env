@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<map>
+  <name>Hwangak</name>
+  <img_path_color>resources/hwangak_color.png</img_path_color>
+  <img_path_gray>resources/hwangak_gray.png</img_path_gray>
+  <args></args>
+  <tee>
+    <x>242</x>
+    <y>74</y>
+  </tee>
+  <pin>
+    <x>246</x>
+    <y>419</y>
+  </pin>
+</map>

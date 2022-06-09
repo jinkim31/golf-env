@@ -3,7 +3,7 @@
   <name>Sejong</name>
   <img_path_color>resources/sejong_color.png</img_path_color>
   <img_path_gray>resources/sejong_gray.png</img_path_gray>
-  <args>weights/actor_e_net_a.h5</args>
+  <args></args>
   <tee>
     <x>259</x>
     <y>92</y>
