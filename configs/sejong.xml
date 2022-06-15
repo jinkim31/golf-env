@@ -5,11 +5,11 @@
   <img_path_gray>resources/sejong_gray.png</img_path_gray>
   <args></args>
   <tee>
-    <x>259</x>
-    <y>92</y>
+    <x>280</x>
+    <y>42</y>
   </tee>
   <pin>
-    <x>281</x>
-    <y>459</y>
+    <x>292</x>
+    <y>467</y>
   </pin>
 </map>
