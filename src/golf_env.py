@@ -43,6 +43,7 @@ class GolfEnv:
             self.landed_pixel_intensity = None
             self.club_availability = None
             self.last_step_reward = None
+            self.debug_str = ''
 
     class AreaInfoIndex(IntEnum):
         NAME = 0
@@ -350,15 +351,17 @@ class GolfEnv:
                 self._ball_path_y.append(new_ball_pos[1])
 
         # print debug
+        self._state.debug_str = (
+            f'{self._step_n:<7}'
+            f'{debug_club_name:<10}'
+            f'{self._state.dist_to_pin:<6.2f}m    '
+            f'{debug_area_name:<12}'
+            f'reward:{reward:<6.2f}    '
+            f'action:[{action[0]:<6.2f},{action[1]:<3}]'
+        )
+
         if debug:
-            print(
-                f'{self._step_n:<7}'
-                f'{debug_club_name:<10}'
-                f'{self._state.dist_to_pin:<6.2f}m    '
-                f'{debug_area_name:<12}'
-                f'reward:{reward:<6.2f}    '
-                f'action:[{action[0]:<6.2f},{action[1]:<3}]'
-            )
+            print(self._state.debug_str)
 
         if 0 < self._max_step_n <= self._step_n:
             termination = True
@@ -469,9 +472,10 @@ class GolfEnv:
         return state_img
 
     def get_state_metadata(self):
-        return{
+        return {
             'dist_to_tee': self._state.dist_to_tee,
             'last_step_reward': self._state.last_step_reward,
+            'debug_str': self._state.debug_str,
         }
 
     def get_config_args(self):
