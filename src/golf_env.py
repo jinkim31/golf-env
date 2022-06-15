@@ -36,12 +36,13 @@ class GolfEnv:
 
     class State:
         def __init__(self):
-            self.distance_to_pin = None
+            self.dist_to_pin = None
+            self.dist_to_tee = None
             self.state_img = None
             self.ball_pos = None
-            self.distance_to_pin = None
             self.landed_pixel_intensity = None
             self.club_availability = None
+            self.last_step_reward = None
 
     class AreaInfoIndex(IntEnum):
         NAME = 0
@@ -63,11 +64,11 @@ class GolfEnv:
         DEV_Y = 3
         IS_DIST_PROPER = 4
 
-    _IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
-    _IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '../resources/sophia_green_gray.png')
+    _IMG_PATH_GRAY = ''
+    _IMG_PATH_COLOR = ''
     _IMG_SIZE = np.array([500, 500])
     _IMG_SAMPLING_STRIDE = 1 * 3.571
-    _START_POS = np.array([256, 116])
+    _TEE_POS = np.array([256, 116])
     _PIN_POS = np.array([280, 430])
     _STATE_IMAGE_WIDTH = 84
     _STATE_IMAGE_HEIGHT = 84
@@ -124,7 +125,7 @@ class GolfEnv:
         try:
             self._IMG_PATH_GRAY = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_gray').text)
             self._IMG_PATH_COLOR = os.path.join(os.path.dirname(__file__), '..', tree.find('./img_path_color').text)
-            self._START_POS = np.array([
+            self._TEE_POS = np.array([
                 int(tree.find('./tee/x').text),
                 int(tree.find('./tee/y').text)
             ])
@@ -139,17 +140,17 @@ class GolfEnv:
         except AttributeError:
             raise self.MapConfigParseException(xml_path)
 
-        self.__step_n = 0
-        self.__max_step_n = -1
-        self.__ball_path_x = []
-        self.__ball_path_y = []
-        self.__state = self.State()
-        self.__img_color = cv2.resize(cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB),
-                                      dsize=(500, 500), interpolation=cv2.INTER_AREA)
-        self.__img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
-        self.__rng = np.random.default_rng()
-        self.__keyframes = []
-        self.__animation_path = ''
+        self._step_n = 0
+        self._max_step_n = -1
+        self._ball_path_x = []
+        self._ball_path_y = []
+        self._state = self.State()
+        self._img_color = cv2.resize(cv2.cvtColor(cv2.imread(self._IMG_PATH_COLOR), cv2.COLOR_BGR2RGB),
+                                     dsize=(500, 500), interpolation=cv2.INTER_AREA)
+        self._img_gray = cv2.cvtColor(cv2.imread(self._IMG_PATH_GRAY), cv2.COLOR_BGR2GRAY)
+        self._rng = np.random.default_rng()
+        self._keyframes = []
+        self._animation_path = ''
 
     def reset(self,
               initial_pos=None,
@@ -168,18 +169,19 @@ class GolfEnv:
         :return: tuple of initial state(img, dist), r:rewards term:termination
         """
 
-        self.__max_step_n = max_timestep
-        self.__step_n = 0
-        self.__state.ball_pos = self._START_POS
-        self.__state.club_availability = np.ones(len(GolfEnv.SKILL_MODEL))
-        self.__state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self._START_POS)]
-        self.__animation_path = animation_path
+        self._max_step_n = max_timestep
+        self._step_n = 0
+        self._state.ball_pos = self._TEE_POS
+        self._state.club_availability = np.ones(len(GolfEnv.SKILL_MODEL))
+        self._state.area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(self._TEE_POS)]
+        self._state.last_step_reward = 0.0
+        self._animation_path = animation_path
 
         # randomize available clubs when club_availability is True
         if regenerate_club_availability:
             while True:
-                self.__state.club_availability = np.random.randint(2, size=len(GolfEnv.SKILL_MODEL))
-                if np.max(self.__state.club_availability) == 1:
+                self._state.club_availability = np.random.randint(2, size=len(GolfEnv.SKILL_MODEL))
+                if np.max(self._state.club_availability) == 1:
                     break
 
         # set initial pose when initial_pos is not None
@@ -194,8 +196,8 @@ class GolfEnv:
             if area_name not in self._POSSIBLE_INIT_POS_AREAS:
                 raise GolfEnv.InvalidInitialPosException(initial_pos, area_name)
 
-            self.__state.area_info = area_info
-            self.__state.ball_pos = initial_pos
+            self._state.area_info = area_info
+            self._state.ball_pos = initial_pos
 
         # randomize initial pose when randomize_initial_pos is True
         if randomize_initial_pos:
@@ -211,21 +213,22 @@ class GolfEnv:
                 if area_name in self._POSSIBLE_INIT_POS_AREAS:
                     break
 
-            self.__state.area_info = area_info
-            self.__state.ball_pos = rand_pos
+            self._state.area_info = area_info
+            self._state.ball_pos = rand_pos
 
-        # get ball pos, dist_to_pin
-        self.__state.distance_to_pin = np.linalg.norm(self.__state.ball_pos - self._PIN_POS)
-        self.__state.state_img = self.__generate_state_img(self.__state.ball_pos)
-        self.__state.landed_pixel_intensity = self.__get_pixel_on(self.__state.ball_pos)
+        # get ball pos, dist_to_pin, dist_to_tee
+        self._state.dist_to_pin = np.linalg.norm(self._state.ball_pos - self._PIN_POS)
+        self._state.dist_to_tee = np.linalg.norm(self._state.ball_pos - self._TEE_POS)
+        self._state.state_img = self.__generate_state_img(self._state.ball_pos)
+        self._state.landed_pixel_intensity = self.__get_pixel_on(self._state.ball_pos)
 
-        self.__ball_path_x = [self.__state.ball_pos[0]]
-        self.__ball_path_y = [self.__state.ball_pos[1]]
+        self._ball_path_x = [self._state.ball_pos[0]]
+        self._ball_path_y = [self._state.ball_pos[1]]
 
-        if self.__animation_path != '':
-            self.__keyframes.append(self.paint())
+        if self._animation_path != '':
+            self._keyframes.append(self.paint())
 
-        return self.__state.state_img, self.__state.distance_to_pin, self.__state.club_availability
+        return self._state.state_img, self._state.dist_to_pin, self._state.club_availability
 
     def step(self, action, regenerate_heuristic_club_availability=False, accurate_shots=False, debug=False):
         """
@@ -238,30 +241,30 @@ class GolfEnv:
         s:tuple of state(img, dist), r:rewards term:termination
         """
 
-        self.__step_n += 1
+        self._step_n += 1
 
         debug_club_name = GolfEnv.SKILL_MODEL[action[1]][GolfEnv.ClubInfoIndex.NAME]
         debug_area_name = ''
 
         if regenerate_heuristic_club_availability:
-            self.__state.club_availability = self.__get_dist_proper_club_availability(self.__state.distance_to_pin)
+            self._state.club_availability = self.__get_dist_proper_club_availability(self._state.dist_to_pin)
 
         # when unavailable club is picked return previous state with reward of -4
-        if self.__state.club_availability[action[1]] == 0:
+        if self._state.club_availability[action[1]] == 0:
             reward = -4
             # terminate when max step limit is reached
-            termination = 0 < self.__max_step_n <= self.__step_n
+            termination = 0 < self._max_step_n <= self._step_n
             debug_club_name += ' (X)'
 
         else:
             # get area info, dist_coef, dev_coef
-            self.__state.area_info = GolfEnv.AREA_INFO[self.__state.landed_pixel_intensity]
-            dist_coef = self.__state.area_info[self.AreaInfoIndex.DIST_COEF]
-            dev_coef = math.sqrt(self.__state.area_info[self.AreaInfoIndex.DEV_COEF])
+            self._state.area_info = GolfEnv.AREA_INFO[self._state.landed_pixel_intensity]
+            dist_coef = self._state.area_info[self.AreaInfoIndex.DIST_COEF]
+            dev_coef = math.sqrt(self._state.area_info[self.AreaInfoIndex.DEV_COEF])
 
             # get club info, distance, devs, reduced_dist
-            self.__state.club_info = GolfEnv.SKILL_MODEL[action[1]]
-            club_name, club_distance, dev_x, dev_y, _ = self.__state.club_info
+            self._state.club_info = GolfEnv.SKILL_MODEL[action[1]]
+            club_name, club_distance, dev_x, dev_y, _ = self._state.club_info
             reduced_dist = club_distance * dist_coef
 
             # nullify deviations if accurate_shots option is on
@@ -269,20 +272,20 @@ class GolfEnv:
                 dev_coef = 0.0
 
             # get tf delta of (x,y)
-            angle_to_pin = math.atan2(self._PIN_POS[1] - self.__state.ball_pos[1],
-                                      self._PIN_POS[0] - self.__state.ball_pos[0])
-            shoot = np.array([[reduced_dist, 0]]) + self.__rng.normal(
+            angle_to_pin = math.atan2(self._PIN_POS[1] - self._state.ball_pos[1],
+                                      self._PIN_POS[0] - self._state.ball_pos[0])
+            shoot = np.array([[reduced_dist, 0]]) + self._rng.normal(
                 size=2,
                 scale=[dev_x * dev_coef, dev_y * dev_coef]
             )
             delta = np.dot(util.rotation_2d(util.deg_to_rad(action[0]) + angle_to_pin), shoot.transpose()).transpose()
 
             # offset tf by delta to derive new ball pose
-            new_ball_pos = np.array([self.__state.ball_pos[0] + delta[0][0], self.__state.ball_pos[1] + delta[0][1]])
+            new_ball_pos = np.array([self._state.ball_pos[0] + delta[0][0], self._state.ball_pos[1] + delta[0][1]])
 
             # store position for plotting
-            self.__ball_path_x.append(new_ball_pos[0])
-            self.__ball_path_y.append(new_ball_pos[1])
+            self._ball_path_x.append(new_ball_pos[0])
+            self._ball_path_y.append(new_ball_pos[1])
 
             # get landed pixel intensity, area info
             new_pixel = self.__get_pixel_on(new_ball_pos)
@@ -292,28 +295,30 @@ class GolfEnv:
             debug_area_name = area_info[GolfEnv.AreaInfoIndex.NAME]
 
             # get distance to ball
-            distance_to_pin = np.linalg.norm(new_ball_pos - np.array([self._PIN_POS[0], self._PIN_POS[1]]))
+            dist_to_pin = np.linalg.norm(new_ball_pos - self._PIN_POS)
+            dist_to_tee = np.linalg.norm(new_ball_pos - self._TEE_POS)
 
             # get reward, termination from reward dict
-            reward = area_info[self.AreaInfoIndex.REWARD](distance_to_pin)
+            reward = area_info[self.AreaInfoIndex.REWARD](dist_to_pin)
             termination = area_info[self.AreaInfoIndex.TERMINATION]
 
             if area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.NONE:
                 # get state img
                 new_state_img = self.__generate_state_img(new_ball_pos)
                 # update state
-                self.__state.area_info = area_info
-                self.__state.state_img = new_state_img
-                self.__state.distance_to_pin = distance_to_pin
-                self.__state.ball_pos = new_ball_pos
-                self.__state.landed_pixel_intensity = new_pixel
+                self._state.area_info = area_info
+                self._state.state_img = new_state_img
+                self._state.dist_to_pin = dist_to_pin
+                self._state.dist_to_tee = dist_to_tee
+                self._state.ball_pos = new_ball_pos
+                self._state.landed_pixel_intensity = new_pixel
 
             elif area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.ROLLBACK:
                 # add previous position to scatter plot to indicate ball return when rolled back
-                self.__ball_path_x.append(self.__state.ball_pos[0])
-                self.__ball_path_y.append(self.__state.ball_pos[1])
+                self._ball_path_x.append(self._state.ball_pos[0])
+                self._ball_path_y.append(self._state.ball_pos[1])
 
-            elif self.__state.area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.SHORE:
+            elif self._state.area_info[self.AreaInfoIndex.ON_LAND] == self.OnLandAction.SHORE:
                 # get angle to move
                 from_pin_vector = np.array(
                     [new_ball_pos[0] - self._PIN_POS[0],
@@ -329,42 +334,46 @@ class GolfEnv:
 
                 # get state img
                 new_state_img = self.__generate_state_img(new_ball_pos)
+
                 # recompute area info
                 area_info = GolfEnv.AREA_INFO[self.__get_pixel_on(new_ball_pos)]
+
                 # update state
-                self.__state.area_info = area_info
-                self.__state.state_img = new_state_img
-                self.__state.distance_to_pin = distance_to_pin
-                self.__state.ball_pos = new_ball_pos
-                self.__state.landed_pixel_intensity = new_pixel
+                self._state.area_info = area_info
+                self._state.state_img = new_state_img
+                self._state.dist_to_pin = dist_to_pin
+                self._state.ball_pos = new_ball_pos
+                self._state.landed_pixel_intensity = new_pixel
 
                 # add current point to scatter plot to indicate on-landing action
-                self.__ball_path_x.append(new_ball_pos[0])
-                self.__ball_path_y.append(new_ball_pos[1])
+                self._ball_path_x.append(new_ball_pos[0])
+                self._ball_path_y.append(new_ball_pos[1])
 
         # print debug
         if debug:
             print(
-                f'{self.__step_n:<7}'
+                f'{self._step_n:<7}'
                 f'{debug_club_name:<10}'
-                f'{self.__state.distance_to_pin:<6.2f}m    '
+                f'{self._state.dist_to_pin:<6.2f}m    '
                 f'{debug_area_name:<12}'
                 f'reward:{reward:<6.2f}    '
                 f'action:[{action[0]:<6.2f},{action[1]:<3}]'
             )
 
-        if 0 < self.__max_step_n <= self.__step_n:
+        if 0 < self._max_step_n <= self._step_n:
             termination = True
 
-        if self.__animation_path != '':
-            self.__keyframes.append(self.paint())
+        if self._animation_path != '':
+            self._keyframes.append(self.paint())
 
-        if termination and self.__animation_path != '':
-            util.make_gif(self.__keyframes, self.__animation_path)
-            self.__keyframes = []
+        if termination and self._animation_path != '':
+            util.make_gif(self._keyframes, self._animation_path)
+            self._keyframes = []
 
-        return (self.__state.state_img, self.__state.distance_to_pin,
-                self.__state.club_availability), reward, termination
+        self._state.last_step_reward = reward
+
+        return (self._state.state_img, self._state.dist_to_pin,
+                self._state.club_availability), reward, termination
 
     def plot(self):
         plt.figure(figsize=(10, 10))
@@ -373,40 +382,42 @@ class GolfEnv:
         plt.xlim([0, self._IMG_SIZE[0]])
         plt.ylim([0, self._IMG_SIZE[1]])
         plt.imshow(plt.imread(self._IMG_PATH_GRAY), extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
-        plt.plot(self.__ball_path_x, self.__ball_path_y, marker='o', color="white")
+        plt.plot(self._ball_path_x, self._ball_path_y, marker='o', color="white")
 
         plt.show()
 
-    def paint(self):
-        img = np.copy(self.__img_color)
+    def paint(self, draw_plot=False):
+        img = np.copy(self._img_color)
 
         # draw dots
-        for i in range(len(self.__ball_path_x)):
+        for i in range(len(self._ball_path_x)):
             img = cv2.circle(
                 img,
-                (int(self.__ball_path_x[i]),
-                 self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
+                (int(self._ball_path_x[i]),
+                 self._IMG_SIZE[1] - 1 - int(self._ball_path_y[i])),
                 3, (255, 255, 255), cv2.FILLED, cv2.LINE_8
             )
         # draw lines
-        for i in range(len(self.__ball_path_x) - 1):
+        for i in range(len(self._ball_path_x) - 1):
             img = cv2.line(img,
-                           (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
-                           (int(self.__ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
+                           (int(self._ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self._ball_path_y[i])),
+                           (int(self._ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self._ball_path_y[i + 1])),
                            (219, 192, 50),
                            2,
                            cv2.LINE_AA)
 
             img = cv2.line(img,
-                           (int(self.__ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i])),
-                           (int(self.__ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self.__ball_path_y[i + 1])),
+                           (int(self._ball_path_x[i]), self._IMG_SIZE[1] - 1 - int(self._ball_path_y[i])),
+                           (int(self._ball_path_x[i + 1]), self._IMG_SIZE[1] - 1 - int(self._ball_path_y[i + 1])),
                            (255, 255, 255),
                            1,
                            cv2.LINE_AA)
 
-        # plt.figure(figsize=(10, 10))
-        # plt.imshow(img, extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
-        # plt.show()
+        if draw_plot:
+            plt.figure(figsize=(10, 10))
+            plt.imshow(img, extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
+            plt.show()
+
         return img
 
     # noinspection PyMethodMayBeStatic
@@ -421,7 +432,7 @@ class GolfEnv:
         x0 = int(round(ball_pos[0]))
         y0 = int(round(ball_pos[1]))
         if util.is_within([0, 0], [self._IMG_SIZE[0] - 1, self._IMG_SIZE[1] - 1], [x0, y0]):
-            return self.__img_gray[-y0 - 1, x0]
+            return self._img_gray[-y0 - 1, x0]
         else:
             return self._OUT_OF_IMG_INTENSITY
 
@@ -448,7 +459,7 @@ class GolfEnv:
                 y0 = int(round(p0[1]))
 
                 if util.is_within([0, 0], [self._IMG_SIZE[0] - 1, self._IMG_SIZE[1] - 1], [x0, y0]):
-                    state_img[- state_img_y - 1, - state_img_x - 1] = self.__img_gray[-y0 - 1, x0]
+                    state_img[- state_img_y - 1, - state_img_x - 1] = self._img_gray[-y0 - 1, x0]
                 else:
                     state_img[- state_img_y - 1, - state_img_x - 1] = self._OUT_OF_IMG_INTENSITY
 
@@ -457,11 +468,17 @@ class GolfEnv:
 
         return state_img
 
+    def get_state_metadata(self):
+        return{
+            'dist_to_tee': self._state.dist_to_tee,
+            'last_step_reward': self._state.last_step_reward,
+        }
+
     def get_config_args(self):
         return self._ARGS
 
     def get_timestep(self):
-        return self.__step_n
+        return self._step_n
 
     def set_skill_model(self, skill_model):
         self.SKILL_MODEL = skill_model
