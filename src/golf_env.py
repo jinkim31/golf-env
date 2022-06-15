@@ -404,9 +404,9 @@ class GolfEnv:
                            1,
                            cv2.LINE_AA)
 
-        plt.figure(figsize=(10, 10))
-        plt.imshow(img, extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
-        plt.show()
+        # plt.figure(figsize=(10, 10))
+        # plt.imshow(img, extent=[0, self._IMG_SIZE[0], 0, self._IMG_SIZE[1]])
+        # plt.show()
         return img
 
     # noinspection PyMethodMayBeStatic
